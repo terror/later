@@ -1,17 +1,58 @@
 use {
-  anyhow::Error,
-  axum::{Router, routing::get},
+  anyhow::{Context, anyhow},
+  async_session::{MemoryStore, Session, SessionStore},
+  auth::{AuthRedirect, COOKIE_NAME},
+  axum::{
+    RequestPartsExt, Router,
+    extract::{
+      FromRef, FromRequestParts, OptionalFromRequestParts, Query,
+      State as AppState,
+    },
+    response::{IntoResponse, Redirect, Response},
+    routing::get,
+  },
+  axum_extra::{
+    TypedHeader, headers, typed_header::TypedHeaderRejectionReason,
+  },
   dotenv::dotenv,
+  error::Error,
+  http::{
+    HeaderMap, StatusCode,
+    header::{self, SET_COOKIE},
+    request::Parts,
+  },
+  oauth2::{
+    AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl,
+    Scope, TokenResponse, TokenUrl, basic::BasicClient as OAuth2BasicClient,
+  },
+  serde::{Deserialize, Serialize},
   sqlx::PgPool,
-  std::{env, process},
+  state::State,
+  std::{
+    convert::Infallible,
+    env,
+    fmt::{self, Display, Formatter},
+    process,
+  },
   tokio::net::TcpListener,
   tracing::{error, info},
   tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt},
+  user::User,
 };
 
-#[derive(Debug, Clone)]
-struct State {
-  _db: PgPool,
+mod auth;
+mod error;
+mod state;
+mod user;
+
+async fn index(user: Option<User>) -> impl axum::response::IntoResponse {
+  match user {
+    Some(u) => format!(
+      "Hey {}! You're logged in!\nYou may now access `/protected`.\nLog out with `/logout`.",
+      u.login
+    ),
+    None => "You're not logged in.\nVisit `/auth/github` to do so.".to_string(),
+  }
 }
 
 async fn run() -> Result {
@@ -26,10 +67,22 @@ async fn run() -> Result {
 
   info!("Database connected successfully");
 
-  let state = State { _db: pool };
+  let store = MemoryStore::new();
+
+  let oauth_client =
+    auth::oauth_client().expect("Failed to create OAuth client");
+
+  let state = State {
+    _db: pool,
+    store,
+    oauth_client,
+  };
 
   let app = Router::new()
-    .route("/", get(|| async { "Hello, World!" }))
+    .route("/", get(index))
+    .route("/auth/github", get(auth::github_auth))
+    .route("/auth/authorized", get(auth::login_authorized))
+    .route("/logout", get(auth::logout))
     .with_state(state);
 
   let listener = TcpListener::bind("0.0.0.0:80").await?;
