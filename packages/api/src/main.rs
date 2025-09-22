@@ -45,7 +45,7 @@ mod error;
 mod state;
 mod user;
 
-async fn index(user: Option<User>) -> impl axum::response::IntoResponse {
+async fn index(user: Option<User>) -> impl IntoResponse {
   match user {
     Some(u) => format!(
       "Hey {}! You're logged in!\nYou may now access `/protected`.\nLog out with `/logout`.",
