@@ -9,3 +9,6 @@ default:
 
 fmt:
   cargo fmt
+
+services:
+  docker compose up -d
