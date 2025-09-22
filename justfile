@@ -10,5 +10,8 @@ default:
 fmt:
   cargo fmt
 
+restart-services:
+  docker compose down --volumes && just services
+
 services:
   docker compose up -d
