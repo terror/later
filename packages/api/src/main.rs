@@ -29,6 +29,7 @@ use {
     AsyncCommands, Client, IntoConnectionInfo, RedisResult,
     aio::ConnectionManager,
   },
+  redis_session_store::RedisSessionStore,
   serde::{Deserialize, Serialize},
   sqlx::PgPool,
   state::State,
@@ -46,7 +47,7 @@ use {
 
 mod auth;
 mod error;
-mod redis_store;
+mod redis_session_store;
 mod state;
 mod user;
 
@@ -75,9 +76,9 @@ async fn run() -> Result {
   let redis_url = env::var("REDIS_URL")
     .unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
 
-  let store = redis_store::RedisSessionStore::new(redis_url)
+  let store = RedisSessionStore::new(redis_url)
     .await
-    .context("Failed to create Redis session store")?;
+    .context("failed to create Redis session store")?;
 
   let oauth_client = auth::oauth_client()?;
 
