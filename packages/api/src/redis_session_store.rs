@@ -88,7 +88,7 @@ impl SessionStore for RedisSessionStore {
   async fn destroy_session(&self, session: Session) -> async_session::Result {
     let mut connection = self.manager.clone();
 
-    let key = self.prefix_key(session.id().to_string());
+    let key = self.prefix_key(session.id());
 
     let _: () = connection.del(key).await?;
 
@@ -275,12 +275,13 @@ mod tests {
     let loaded_session =
       store.load_session(cookie_value).await.unwrap().unwrap();
 
+    assert!(loaded_session.get::<bool>("bool_key").unwrap());
+
     assert_eq!(
       "string_value",
       &loaded_session.get::<String>("string_key").unwrap()
     );
 
     assert_eq!(42i32, loaded_session.get::<i32>("number_key").unwrap());
-    assert_eq!(true, loaded_session.get::<bool>("bool_key").unwrap());
   }
 }
