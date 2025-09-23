@@ -51,16 +51,6 @@ mod redis_session_store;
 mod state;
 mod user;
 
-async fn index(user: Option<User>) -> impl IntoResponse {
-  match user {
-    Some(u) => format!(
-      "Hey {}! You're logged in!\nYou may now access `/protected`.\nLog out with `/logout`.",
-      u.login
-    ),
-    None => "You're not logged in.\nVisit `/auth/github` to do so.".to_string(),
-  }
-}
-
 async fn run() -> Result {
   let database_url =
     env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -76,7 +66,7 @@ async fn run() -> Result {
   let redis_url = env::var("REDIS_URL")
     .unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
 
-  let store = RedisSessionStore::new(redis_url)
+  let session_store = RedisSessionStore::new(redis_url)
     .await
     .context("failed to create Redis session store")?;
 
@@ -84,15 +74,14 @@ async fn run() -> Result {
 
   let state = State {
     _db: pool,
-    store,
     oauth_client,
+    session_store,
   };
 
   let app = Router::new()
-    .route("/", get(index))
-    .route("/auth/github", get(auth::github_auth))
     .route("/auth/authorized", get(auth::login_authorized))
-    .route("/logout", get(auth::logout))
+    .route("/auth/login", get(auth::login))
+    .route("/auth/logout", get(auth::logout))
     .with_state(state);
 
   let listener = TcpListener::bind("0.0.0.0:80").await?;

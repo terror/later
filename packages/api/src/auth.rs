@@ -68,9 +68,9 @@ pub(crate) fn oauth_client() -> Result<ConfiguredOAuthClient> {
   )
 }
 
-pub async fn github_auth(
+pub async fn login(
   AppState(client): AppState<ConfiguredOAuthClient>,
-  AppState(store): AppState<redis_store::RedisSessionStore>,
+  AppState(store): AppState<RedisSessionStore>,
 ) -> Result<impl IntoResponse> {
   let (auth_url, csrf_token) = client
     .authorize_url(CsrfToken::new_random)
@@ -104,7 +104,7 @@ pub async fn github_auth(
 
 pub(crate) async fn login_authorized(
   Query(query): Query<AuthRequest>,
-  AppState(store): AppState<redis_store::RedisSessionStore>,
+  AppState(store): AppState<RedisSessionStore>,
   AppState(oauth_client): AppState<ConfiguredOAuthClient>,
   TypedHeader(cookies): TypedHeader<headers::Cookie>,
 ) -> Result<impl IntoResponse> {
@@ -155,7 +155,7 @@ pub(crate) async fn login_authorized(
 }
 
 pub(crate) async fn logout(
-  AppState(store): AppState<redis_store::RedisSessionStore>,
+  AppState(store): AppState<RedisSessionStore>,
   TypedHeader(cookies): TypedHeader<headers::Cookie>,
 ) -> Result<impl IntoResponse> {
   let cookie = cookies
@@ -182,7 +182,7 @@ pub(crate) async fn logout(
 async fn validate_csrf_token(
   auth_request: &AuthRequest,
   cookies: &headers::Cookie,
-  store: &redis_store::RedisSessionStore,
+  store: &RedisSessionStore,
 ) -> Result<()> {
   let cookie = cookies
     .get(COOKIE_NAME)

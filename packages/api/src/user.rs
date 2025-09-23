@@ -11,7 +11,7 @@ pub(crate) struct User {
 
 impl<S> OptionalFromRequestParts<S> for User
 where
-  redis_store::RedisSessionStore: FromRef<S>,
+  RedisSessionStore: FromRef<S>,
   S: Send + Sync,
 {
   type Rejection = Infallible;
@@ -30,7 +30,7 @@ where
 
 impl<S> FromRequestParts<S> for User
 where
-  redis_store::RedisSessionStore: FromRef<S>,
+  RedisSessionStore: FromRef<S>,
   S: Send + Sync,
 {
   type Rejection = AuthRedirect;
@@ -39,7 +39,7 @@ where
     parts: &mut Parts,
     state: &S,
   ) -> Result<Self, Self::Rejection> {
-    let store = redis_store::RedisSessionStore::from_ref(state);
+    let store = RedisSessionStore::from_ref(state);
 
     let cookies = parts
       .extract::<TypedHeader<headers::Cookie>>()
