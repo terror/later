@@ -3,11 +3,11 @@ use super::*;
 #[derive(Debug, Clone)]
 pub(crate) struct State {
   pub(crate) _db: PgPool,
-  pub(crate) store: MemoryStore,
+  pub(crate) store: redis_store::RedisSessionStore,
   pub(crate) oauth_client: auth::ConfiguredOAuthClient,
 }
 
-impl FromRef<State> for MemoryStore {
+impl FromRef<State> for redis_store::RedisSessionStore {
   fn from_ref(state: &State) -> Self {
     state.store.clone()
   }

@@ -1,6 +1,6 @@
 use {
   anyhow::{Context, anyhow},
-  async_session::{MemoryStore, Session, SessionStore},
+  async_session::{Session, SessionStore, async_trait, serde_json},
   auth::{AuthRedirect, COOKIE_NAME},
   axum::{
     RequestPartsExt, Router,
@@ -25,13 +25,17 @@ use {
     AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl,
     Scope, TokenResponse, TokenUrl, basic::BasicClient as OAuth2BasicClient,
   },
+  redis::{
+    AsyncCommands, Client, IntoConnectionInfo, RedisResult,
+    aio::ConnectionManager,
+  },
   serde::{Deserialize, Serialize},
   sqlx::PgPool,
   state::State,
   std::{
     convert::Infallible,
     env,
-    fmt::{self, Display, Formatter},
+    fmt::{self, Debug, Display, Formatter},
     process,
   },
   tokio::net::TcpListener,
@@ -42,6 +46,7 @@ use {
 
 mod auth;
 mod error;
+mod redis_store;
 mod state;
 mod user;
 
@@ -67,10 +72,14 @@ async fn run() -> Result {
 
   info!("Database connected successfully");
 
-  let store = MemoryStore::new();
+  let redis_url = env::var("REDIS_URL")
+    .unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
 
-  let oauth_client =
-    auth::oauth_client().expect("Failed to create OAuth client");
+  let store = redis_store::RedisSessionStore::new(redis_url)
+    .await
+    .context("Failed to create Redis session store")?;
+
+  let oauth_client = auth::oauth_client()?;
 
   let state = State {
     _db: pool,
