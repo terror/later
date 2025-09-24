@@ -1,9 +1,13 @@
 use {
+  aide::{
+    axum::ApiRouter, openapi::OpenApi, scalar::Scalar,
+    transform::TransformOpenApi,
+  },
   anyhow::{Context, anyhow},
   async_session::{Session, SessionStore, async_trait, serde_json},
   auth::{AuthRedirect, COOKIE_NAME},
   axum::{
-    RequestPartsExt, Router,
+    Extension, Json, RequestPartsExt,
     extract::{
       FromRef, FromRequestParts, OptionalFromRequestParts, Query,
       State as AppState,
@@ -39,6 +43,7 @@ use {
     env,
     fmt::{self, Debug, Display, Formatter},
     process,
+    sync::Arc,
   },
   tokio::net::TcpListener,
   tracing::{error, info},
@@ -51,6 +56,43 @@ mod error;
 mod redis_session_store;
 mod state;
 mod user;
+
+fn documentation_meta(api: TransformOpenApi) -> TransformOpenApi {
+  api
+    .title("later")
+    .description(env!("CARGO_PKG_DESCRIPTION"))
+    .version(env!("CARGO_PKG_VERSION"))
+}
+
+pub fn documentation_router() -> ApiRouter {
+  aide::generate::infer_responses(true);
+
+  let router = ApiRouter::new()
+    .api_route_with(
+      "/",
+      aide::axum::routing::get_with(
+        Scalar::new("/private/api.json")
+          .with_title("later")
+          .axum_handler(),
+        |op| op.description(env!("CARGO_PKG_DESCRIPTION")),
+      ),
+      |p| p,
+    )
+    .route(
+      "/private/api.json",
+      aide::axum::routing::get(serve_documentation),
+    );
+
+  aide::generate::infer_responses(false);
+
+  router
+}
+
+async fn serve_documentation(
+  axum::Extension(api): axum::Extension<Arc<OpenApi>>,
+) -> impl aide::axum::IntoApiResponse {
+  Json(api).into_response()
+}
 
 async fn run() -> Result {
   let database_url =
@@ -79,10 +121,21 @@ async fn run() -> Result {
     session_store,
   };
 
-  let app = Router::new()
+  aide::generate::on_error(|error| {
+    error!("failed to generate OpenAPI spec: {error}");
+  });
+
+  aide::generate::extract_schemas(true);
+
+  let mut api = OpenApi::default();
+
+  let app = ApiRouter::new()
     .route("/auth/authorized", get(auth::login_authorized))
     .route("/auth/login", get(auth::login))
     .route("/auth/logout", get(auth::logout))
+    .fallback_service(documentation_router())
+    .finish_api_with(&mut api, documentation_meta)
+    .layer(Extension(Arc::new(api)))
     .with_state(state);
 
   let listener = TcpListener::bind("0.0.0.0:80").await?;
