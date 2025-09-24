@@ -5,11 +5,8 @@
     "packages/web"
   ],
   "scripts": {
-    "dev:all": "concurrently \"bun run dev:api\" \"bun run dev:web\"",
-    "dev:api": "cd packages/api && cargo run",
-    "dev:web": "cd packages/web && bun run dev",
     "fmt": "prettier --write .",
-    "test:all": "bun run test --workspaces && cargo test --workspace"
+    "test": "bun run test --workspaces"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
