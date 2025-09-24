@@ -5,8 +5,7 @@
     "packages/web"
   ],
   "scripts": {
-    "fmt": "prettier --write .",
-    "test": "bun run test --workspaces"
+    "fmt": "prettier --write ."
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",

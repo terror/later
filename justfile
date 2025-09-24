@@ -9,9 +9,11 @@ alias t := test
 default:
   just --list
 
+[group: 'lint']
 clippy:
   ./bin/clippy
 
+[group: 'dev']
 dev: services
   concurrently \
     --kill-others \
@@ -27,14 +29,32 @@ dev: services
     'cd packages/api && cargo watch --clear --exec run' \
     'cd packages/web && bun run dev'
 
-fmt:
-  cargo fmt --all
+[group: 'format']
+fmt: fmt-api fmt-web
 
+[group: 'format']
+fmt-api:
+  cargo fmt -p api
+
+[group: 'format']
+fmt-web:
+  bun run fmt
+
+[group: 'dev']
 restart-services:
   docker compose down --volumes && just services
 
+[group: 'dev']
 services:
   docker compose up -d
 
-test:
-  cargo test --all
+[group: 'test']
+test: test-api test-web
+
+[group: 'test']
+test-api:
+  cargo test -p api
+
+[group: 'test']
+test-web:
+  bun test
