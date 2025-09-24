@@ -34,6 +34,7 @@ use {
   sqlx::PgPool,
   state::State,
   std::{
+    backtrace::BacktraceStatus,
     convert::Infallible,
     env,
     fmt::{self, Debug, Display, Formatter},
@@ -115,6 +116,23 @@ async fn main() {
 
   if let Err(error) = run().await {
     error!("error: {error}");
+
+    for (i, error) in error.0.chain().skip(1).enumerate() {
+      if i == 0 {
+        eprintln!();
+        eprintln!("because:");
+      }
+
+      eprintln!("- {error}");
+    }
+
+    let backtrace = error.0.backtrace();
+
+    if backtrace.status() == BacktraceStatus::Captured {
+      eprintln!("backtrace:");
+      eprintln!("{backtrace}");
+    }
+
     process::exit(1);
   }
 }
