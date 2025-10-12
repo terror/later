@@ -21,7 +21,7 @@ use {
   error::Error,
   http::{
     HeaderMap, Request, StatusCode,
-    header::{self, SET_COOKIE},
+    header::{self, SET_COOKIE, USER_AGENT},
     request::Parts,
   },
   oauth2::{
@@ -44,13 +44,20 @@ use {
     fmt::{self, Debug, Display, Formatter},
     net::SocketAddr,
     process,
-    time::Duration,
   },
   tokio::net::TcpListener,
+  tower::ServiceBuilder,
   tower_http::{
-    classify::ServerErrorsFailureClass, cors::CorsLayer, trace::TraceLayer,
+    LatencyUnit,
+    cors::CorsLayer,
+    request_id::{
+      MakeRequestUuid, PropagateRequestIdLayer, RequestId, SetRequestIdLayer,
+    },
+    trace::{
+      DefaultOnFailure, DefaultOnRequest, DefaultOnResponse, TraceLayer,
+    },
   },
-  tracing::{Span, error, info, info_span},
+  tracing::{Level, error, info, info_span},
   tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt},
   user::User,
   utoipa::{
@@ -61,7 +68,6 @@ use {
     },
   },
   utoipa_scalar::{Scalar, Servable},
-  uuid::Uuid,
 };
 
 mod auth;

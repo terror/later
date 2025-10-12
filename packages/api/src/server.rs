@@ -56,50 +56,43 @@ impl Server {
       .route("/auth/logout", get(auth::logout))
       .merge(Scalar::with_url("/", Documentation::openapi()));
 
-    let router = router.with_state(state)
-      .layer(
-        TraceLayer::new_for_http()
-          .make_span_with(|request: &Request<Body>| {
-            let request_id = Uuid::new_v4().to_string();
+    let trace_layer = TraceLayer::new_for_http()
+      .make_span_with(|request: &Request<Body>| {
+        let request_id = request
+          .extensions()
+          .get::<RequestId>()
+          .and_then(|request_id| request_id.header_value().to_str().ok())
+          .unwrap_or("missing-request-id");
 
-            info_span!(
-              "http_request",
-              method = %request.method(),
-              path = %request.uri().path(),
-              query = %request.uri().query().unwrap_or(""),
-              request_id = %request_id,
-              uri = %request.uri(),
-              user_agent = %request
-                .headers()
-                .get("user-agent")
-                .and_then(|header| header.to_str().ok())
-                .unwrap_or("unknown"))
-          })
-          .on_request(|_request: &Request<Body>, span: &Span| {
-            info!(parent: span, "request started");
-          })
-          .on_response(|response: &Response, latency: Duration, span: &Span| {
-            info!(
-              parent: span,
-              status = %response.status(),
-              latency_ms = %latency.as_millis(),
-              "request completed"
-            );
-          })
-          .on_failure(
-            |error: ServerErrorsFailureClass,
-             latency: Duration,
-             span: &Span| {
-              error!(
-                parent: span,
-                error = %error,
-                latency_ms = %latency.as_millis(),
-                "request failed"
-              );
-            },
-          ),
+        let user_agent = request
+          .headers()
+          .get(USER_AGENT)
+          .and_then(|header| header.to_str().ok())
+          .unwrap_or("unknown");
+
+        info_span!(
+          "http_request",
+          method = %request.method(),
+          request_id = %request_id,
+          uri = %request.uri(),
+          user_agent = %user_agent,
+        )
+      })
+      .on_request(DefaultOnRequest::new().level(Level::INFO))
+      .on_response(
+        DefaultOnResponse::new()
+          .level(Level::INFO)
+          .latency_unit(LatencyUnit::Millis),
       )
+      .on_failure(DefaultOnFailure::new().level(Level::ERROR));
+
+    let middleware = ServiceBuilder::new()
+      .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
+      .layer(trace_layer)
+      .layer(PropagateRequestIdLayer::x_request_id())
       .layer(CorsLayer::very_permissive());
+
+    let router = router.with_state(state).layer(middleware);
 
     Ok(router)
   }
