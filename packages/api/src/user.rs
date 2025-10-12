@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub(crate) struct User {
   pub(crate) id: u64,
   pub(crate) avatar_url: Option<String>,

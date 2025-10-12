@@ -68,6 +68,16 @@ pub(crate) fn oauth_client() -> Result<ConfiguredOAuthClient> {
   )
 }
 
+#[utoipa::path(
+  get,
+  path = "/auth/login",
+  tag = "auth",
+  description = "Initiate the GitHub OAuth flow and set the CSRF session cookie.",
+  responses(
+    (status = StatusCode::SEE_OTHER, description = "Redirect to GitHub's OAuth authorization page."),
+    (status = StatusCode::INTERNAL_SERVER_ERROR, description = "Failed to initiate the OAuth flow.", body = String)
+  )
+)]
 pub async fn login(
   AppState(client): AppState<ConfiguredOAuthClient>,
   AppState(store): AppState<RedisSessionStore>,
@@ -102,6 +112,20 @@ pub async fn login(
   Ok((headers, Redirect::to(auth_url.as_ref())))
 }
 
+#[utoipa::path(
+  get,
+  path = "/auth/authorized",
+  tag = "auth",
+  description = "Complete the GitHub OAuth flow, validate state, and establish a user session.",
+  params(
+    ("code" = String, Query, description = "Authorization code returned by GitHub."),
+    ("state" = String, Query, description = "Opaque state used to validate the CSRF token.")
+  ),
+  responses(
+    (status = StatusCode::SEE_OTHER, description = "Redirect to the application after creating the session."),
+    (status = StatusCode::INTERNAL_SERVER_ERROR, description = "Failed to exchange the authorization code or create the session.", body = String)
+  )
+)]
 pub(crate) async fn login_authorized(
   Query(query): Query<AuthRequest>,
   AppState(store): AppState<RedisSessionStore>,
@@ -111,7 +135,7 @@ pub(crate) async fn login_authorized(
   validate_csrf_token(&query, &cookies, &store).await?;
 
   let token = oauth_client
-    .exchange_code(AuthorizationCode::new(query.code.clone()))
+    .exchange_code(oauth2::AuthorizationCode::new(query.code.clone()))
     .request_async(&reqwest::Client::new())
     .await
     .context("failed in sending request request to authorization server")?;
@@ -154,6 +178,16 @@ pub(crate) async fn login_authorized(
   Ok((headers, Redirect::to("/")))
 }
 
+#[utoipa::path(
+  get,
+  path = "/auth/logout",
+  tag = "auth",
+  description = "Invalidate the active user session and redirect back to the client.",
+  responses(
+    (status = StatusCode::SEE_OTHER, description = "Redirect to the requested post-logout location."),
+    (status = StatusCode::INTERNAL_SERVER_ERROR, description = "Failed to destroy the session.", body = String)
+  )
+)]
 pub(crate) async fn logout(
   AppState(store): AppState<RedisSessionStore>,
   TypedHeader(cookies): TypedHeader<headers::Cookie>,

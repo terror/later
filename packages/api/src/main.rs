@@ -14,6 +14,7 @@ use {
   axum_extra::{
     TypedHeader, headers, typed_header::TypedHeaderRejectionReason,
   },
+  documentation::Documentation,
   dotenv::dotenv,
   error::Error,
   http::{
@@ -22,8 +23,8 @@ use {
     request::Parts,
   },
   oauth2::{
-    AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl,
-    Scope, TokenResponse, TokenUrl, basic::BasicClient as OAuth2BasicClient,
+    AuthUrl, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope,
+    TokenResponse, TokenUrl, basic::BasicClient as OAuth2BasicClient,
   },
   redis::{
     AsyncCommands, Client, IntoConnectionInfo, RedisResult,
@@ -44,9 +45,18 @@ use {
   tracing::{error, info},
   tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt},
   user::User,
+  utoipa::{
+    Modify, OpenApi, ToSchema,
+    openapi::{
+      Components,
+      security::{AuthorizationCode, Flow, OAuth2, Scopes, SecurityScheme},
+    },
+  },
+  utoipa_scalar::{Scalar, Servable},
 };
 
 mod auth;
+mod documentation;
 mod error;
 mod redis_session_store;
 mod state;
@@ -83,6 +93,7 @@ async fn run() -> Result {
     .route("/auth/authorized", get(auth::login_authorized))
     .route("/auth/login", get(auth::login))
     .route("/auth/logout", get(auth::logout))
+    .merge(Scalar::with_url("/", Documentation::openapi()))
     .with_state(state);
 
   let listener = TcpListener::bind("0.0.0.0:80").await?;

@@ -20,3 +20,5 @@ sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio-rustls"] }
 tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
+utoipa = { version = "5.4.0", features = ["axum_extras"] }
+utoipa-scalar = { version = "0.3.0", features = ["axum"] }
