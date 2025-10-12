@@ -14,6 +14,7 @@ use {
   axum_extra::{
     TypedHeader, headers, typed_header::TypedHeaderRejectionReason,
   },
+  clap::Parser,
   documentation::Documentation,
   dotenv::dotenv,
   error::Error,
@@ -32,6 +33,7 @@ use {
   },
   redis_session_store::RedisSessionStore,
   serde::{Deserialize, Serialize},
+  server::Server,
   sqlx::PgPool,
   state::State,
   std::{
@@ -39,6 +41,7 @@ use {
     convert::Infallible,
     env,
     fmt::{self, Debug, Display, Formatter},
+    net::SocketAddr,
     process,
   },
   tokio::net::TcpListener,
@@ -59,51 +62,9 @@ mod auth;
 mod documentation;
 mod error;
 mod redis_session_store;
+mod server;
 mod state;
 mod user;
-
-async fn run() -> Result {
-  let database_url =
-    env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-
-  info!("Connecting to database...");
-
-  let pool = sqlx::PgPool::connect(&database_url).await?;
-
-  sqlx::migrate!("./migrations").run(&pool).await?;
-
-  info!("Database connected successfully");
-
-  let redis_url = env::var("REDIS_URL")
-    .unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
-
-  let session_store = RedisSessionStore::new(redis_url)
-    .await
-    .context("failed to create Redis session store")?;
-
-  let oauth_client = auth::oauth_client()?;
-
-  let state = State {
-    _db: pool,
-    oauth_client,
-    session_store,
-  };
-
-  let app = Router::new()
-    .route("/auth/authorized", get(auth::login_authorized))
-    .route("/auth/login", get(auth::login))
-    .route("/auth/logout", get(auth::logout))
-    .merge(Scalar::with_url("/", Documentation::openapi()))
-    .with_state(state);
-
-  let listener = TcpListener::bind("0.0.0.0:80").await?;
-
-  info!("Starting server on 0.0.0.0:80");
-
-  axum::serve(listener, app).await?;
-
-  Ok(())
-}
 
 type Result<T = (), E = Error> = std::result::Result<T, E>;
 
@@ -125,7 +86,7 @@ async fn main() {
     .with(fmt_layer.pretty())
     .init();
 
-  if let Err(error) = run().await {
+  if let Err(error) = Server::parse().run().await {
     error!("error: {error}");
 
     for (i, error) in error.0.chain().skip(1).enumerate() {
