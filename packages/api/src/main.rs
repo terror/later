@@ -4,6 +4,7 @@ use {
   auth::{AuthRedirect, COOKIE_NAME},
   axum::{
     RequestPartsExt, Router,
+    body::Body,
     extract::{
       FromRef, FromRequestParts, OptionalFromRequestParts, Query,
       State as AppState,
@@ -19,7 +20,7 @@ use {
   dotenv::dotenv,
   error::Error,
   http::{
-    HeaderMap, StatusCode,
+    HeaderMap, Request, StatusCode,
     header::{self, SET_COOKIE},
     request::Parts,
   },
@@ -43,9 +44,13 @@ use {
     fmt::{self, Debug, Display, Formatter},
     net::SocketAddr,
     process,
+    time::Duration,
   },
   tokio::net::TcpListener,
-  tracing::{error, info},
+  tower_http::{
+    classify::ServerErrorsFailureClass, cors::CorsLayer, trace::TraceLayer,
+  },
+  tracing::{Span, error, info, info_span},
   tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt},
   user::User,
   utoipa::{
@@ -56,6 +61,7 @@ use {
     },
   },
   utoipa_scalar::{Scalar, Servable},
+  uuid::Uuid,
 };
 
 mod auth;

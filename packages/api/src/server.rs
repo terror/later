@@ -50,13 +50,57 @@ impl Server {
       session_store,
     };
 
-    Ok(
-      Router::new()
-        .route("/auth/authorized", get(auth::login_authorized))
-        .route("/auth/login", get(auth::login))
-        .route("/auth/logout", get(auth::logout))
-        .merge(Scalar::with_url("/", Documentation::openapi()))
-        .with_state(state),
-    )
+    let router = Router::new()
+      .route("/auth/authorized", get(auth::login_authorized))
+      .route("/auth/login", get(auth::login))
+      .route("/auth/logout", get(auth::logout))
+      .merge(Scalar::with_url("/", Documentation::openapi()));
+
+    let router = router.with_state(state)
+      .layer(
+        TraceLayer::new_for_http()
+          .make_span_with(|request: &Request<Body>| {
+            let request_id = Uuid::new_v4().to_string();
+
+            info_span!(
+              "http_request",
+              method = %request.method(),
+              path = %request.uri().path(),
+              query = %request.uri().query().unwrap_or(""),
+              request_id = %request_id,
+              uri = %request.uri(),
+              user_agent = %request
+                .headers()
+                .get("user-agent")
+                .and_then(|header| header.to_str().ok())
+                .unwrap_or("unknown"))
+          })
+          .on_request(|_request: &Request<Body>, span: &Span| {
+            info!(parent: span, "request started");
+          })
+          .on_response(|response: &Response, latency: Duration, span: &Span| {
+            info!(
+              parent: span,
+              status = %response.status(),
+              latency_ms = %latency.as_millis(),
+              "request completed"
+            );
+          })
+          .on_failure(
+            |error: ServerErrorsFailureClass,
+             latency: Duration,
+             span: &Span| {
+              error!(
+                parent: span,
+                error = %error,
+                latency_ms = %latency.as_millis(),
+                "request failed"
+              );
+            },
+          ),
+      )
+      .layer(CorsLayer::very_permissive());
+
+    Ok(router)
   }
 }
