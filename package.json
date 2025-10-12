@@ -2,6 +2,7 @@
   "name": "later",
   "private": true,
   "workspaces": [
+    "packages/extension",
     "packages/web"
   ],
   "scripts": {
