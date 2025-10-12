@@ -1,9 +1,10 @@
 use super::*;
+use redis::Script;
 
 #[derive(Clone)]
 pub struct RedisSessionStore {
   manager: ConnectionManager,
-  prefix: Option<String>,
+  prefix: String,
 }
 
 impl Debug for RedisSessionStore {
@@ -18,22 +19,25 @@ impl RedisSessionStore {
   pub async fn new(
     connection_info: impl IntoConnectionInfo,
   ) -> RedisResult<Self> {
+    Self::new_with_prefix(connection_info, "session:").await
+  }
+
+  pub async fn new_with_prefix(
+    connection_info: impl IntoConnectionInfo,
+    prefix: impl Into<String>,
+  ) -> RedisResult<Self> {
     let client = Client::open(connection_info)?;
 
     let manager = ConnectionManager::new(client).await?;
 
     Ok(Self {
       manager,
-      prefix: None,
+      prefix: prefix.into(),
     })
   }
 
   fn prefix_key(&self, key: impl AsRef<str>) -> String {
-    if let Some(ref prefix) = self.prefix {
-      format!("{}{}", prefix, key.as_ref())
-    } else {
-      key.as_ref().into()
-    }
+    format!("{}{}", self.prefix, key.as_ref())
   }
 }
 
@@ -47,7 +51,9 @@ impl SessionStore for RedisSessionStore {
 
     let mut connection = self.manager.clone();
 
-    let record: Option<String> = connection.get(self.prefix_key(id)).await?;
+    let record = connection
+      .get::<_, Option<String>>(self.prefix_key(id))
+      .await?;
 
     match record {
       Some(value) => Ok(serde_json::from_str(&value)?),
@@ -67,21 +73,50 @@ impl SessionStore for RedisSessionStore {
 
     let mut connection = self.manager.clone();
 
-    let exists: bool = connection.exists(&id).await?;
+    let script = Script::new(
+      r#"
+        local key = KEYS[1]
+        local value = ARGV[1]
+        local ttl = tonumber(ARGV[2])
+        local has_ttl = tonumber(ARGV[3])
 
-    match expiry {
-      None => {
-        let _: () = connection.set(id, string).await?;
-      }
-      Some(expiry) => {
-        let _: () = connection.set_ex(id, string, expiry.as_secs()).await?;
-      }
-    };
+        if redis.call("SETNX", key, value) == 1 then
+          if has_ttl == 1 then
+            redis.call("PEXPIRE", key, ttl)
+          end
 
-    if exists {
-      Ok(None)
-    } else {
+          return 1
+        end
+
+        if has_ttl == 1 then
+          redis.call("SET", key, value, "PX", ttl)
+        else
+          redis.call("SET", key, value)
+        end
+
+        return 0
+      "#,
+    );
+
+    let ttl_ms = expiry
+      .map(|duration| duration.as_millis() as i64)
+      .unwrap_or_default();
+
+    let has_ttl_flag = if expiry.is_some() { 1_i64 } else { 0 };
+
+    let inserted = script
+      .prepare_invoke()
+      .key(&id)
+      .arg(&string)
+      .arg(ttl_ms)
+      .arg(has_ttl_flag)
+      .invoke_async::<i64>(&mut connection)
+      .await?;
+
+    if inserted == 1 {
       Ok(session.into_cookie_value())
+    } else {
+      Ok(None)
     }
   }
 
@@ -90,7 +125,7 @@ impl SessionStore for RedisSessionStore {
 
     let key = self.prefix_key(session.id());
 
-    let _: () = connection.del(key).await?;
+    let _deleted = connection.del::<_, usize>(key).await?;
 
     Ok(())
   }
@@ -98,14 +133,32 @@ impl SessionStore for RedisSessionStore {
   async fn clear_store(&self) -> async_session::Result {
     let mut connection = self.manager.clone();
 
-    if self.prefix.is_none() {
-      let _: () = redis::cmd("FLUSHDB").query_async(&mut connection).await?;
-    } else {
-      let ids: Vec<String> = connection.keys(self.prefix_key("*")).await?;
+    let pattern = self.prefix_key("*");
 
-      if !ids.is_empty() {
-        let _: () = connection.del(ids).await?;
+    let mut cursor = 0;
+
+    loop {
+      let (next_cursor, keys) = redis::cmd("SCAN")
+        .arg(cursor)
+        .arg("MATCH")
+        .arg(&pattern)
+        .arg("COUNT")
+        .arg(128usize)
+        .query_async::<(u64, Vec<String>)>(&mut connection)
+        .await?;
+
+      if !keys.is_empty() {
+        let _deleted = redis::cmd("DEL")
+          .arg(keys)
+          .query_async::<usize>(&mut connection)
+          .await?;
       }
+
+      if next_cursor == 0 {
+        break;
+      }
+
+      cursor = next_cursor;
     }
 
     Ok(())
@@ -116,14 +169,19 @@ impl SessionStore for RedisSessionStore {
 mod tests {
   use {super::*, std::time::Duration, tokio::time::sleep};
 
-  async fn store() -> RedisSessionStore {
-    let store = RedisSessionStore::new("redis://127.0.0.1:6379")
-      .await
-      .unwrap();
+  async fn store_with_prefix(prefix: &str) -> RedisSessionStore {
+    let store =
+      RedisSessionStore::new_with_prefix("redis://127.0.0.1:6379", prefix)
+        .await
+        .unwrap();
 
     store.clear_store().await.unwrap();
 
     store
+  }
+
+  async fn store() -> RedisSessionStore {
+    store_with_prefix("session:").await
   }
 
   #[tokio::test]
@@ -283,5 +341,131 @@ mod tests {
     );
 
     assert_eq!(42i32, loaded_session.get::<i32>("number_key").unwrap());
+  }
+
+  #[tokio::test]
+  async fn custom_prefix_applied_to_keys() {
+    let store = store_with_prefix("custom:").await;
+
+    let mut session = Session::new();
+    session.insert("k", "v").unwrap();
+
+    let session_id = session.id().to_string();
+
+    store.store_session(session).await.unwrap().unwrap();
+
+    let mut connection =
+      ConnectionManager::new(Client::open("redis://127.0.0.1:6379").unwrap())
+        .await
+        .unwrap();
+
+    let keys = redis::cmd("KEYS")
+      .arg("custom:*")
+      .query_async::<Vec<String>>(&mut connection)
+      .await
+      .unwrap();
+
+    assert_eq!(1, keys.len());
+    assert_eq!(format!("custom:{session_id}"), keys[0]);
+
+    store.clear_store().await.unwrap();
+  }
+
+  #[tokio::test]
+  async fn clear_store_preserves_unrelated_keys() {
+    let store = store().await;
+
+    let mut session = Session::new();
+    session.insert("keep", "me").unwrap();
+
+    let key = store.prefix_key(session.id());
+
+    store.store_session(session).await.unwrap();
+
+    let mut connection =
+      ConnectionManager::new(Client::open("redis://127.0.0.1:6379").unwrap())
+        .await
+        .unwrap();
+
+    let _ = redis::cmd("SET")
+      .arg("unrelated:key")
+      .arg("still_here")
+      .query_async::<String>(&mut connection)
+      .await
+      .unwrap();
+
+    store.clear_store().await.unwrap();
+
+    let session_exists = redis::cmd("EXISTS")
+      .arg(&key)
+      .query_async::<i64>(&mut connection)
+      .await
+      .unwrap();
+
+    assert_eq!(0, session_exists);
+
+    let unrelated_value = redis::cmd("GET")
+      .arg("unrelated:key")
+      .query_async::<Option<String>>(&mut connection)
+      .await
+      .unwrap();
+
+    assert_eq!(Some("still_here".to_string()), unrelated_value);
+
+    let _ = redis::cmd("DEL")
+      .arg("unrelated:key")
+      .query_async::<i64>(&mut connection)
+      .await
+      .unwrap();
+  }
+
+  #[tokio::test]
+  async fn ttl_is_applied_on_insert_and_update() {
+    let store = store().await;
+
+    let mut session = Session::new();
+    session.insert("key", "value").unwrap();
+    session.expire_in(Duration::from_secs(2));
+
+    let key = store.prefix_key(session.id());
+
+    let cookie_value = store.store_session(session).await.unwrap().unwrap();
+
+    let mut connection =
+      ConnectionManager::new(Client::open("redis://127.0.0.1:6379").unwrap())
+        .await
+        .unwrap();
+
+    let ttl_initial = redis::cmd("PTTL")
+      .arg(&key)
+      .query_async::<i64>(&mut connection)
+      .await
+      .unwrap();
+
+    assert!(ttl_initial > 0);
+    assert!(ttl_initial <= 2000);
+
+    let mut loaded_session = store
+      .load_session(cookie_value.clone())
+      .await
+      .unwrap()
+      .unwrap();
+
+    loaded_session.insert("key", "updated").unwrap();
+    loaded_session.expire_in(Duration::from_secs(5));
+
+    let updated_cookie = store.store_session(loaded_session).await.unwrap();
+    assert!(updated_cookie.is_none());
+
+    let ttl_updated = redis::cmd("PTTL")
+      .arg(&key)
+      .query_async::<i64>(&mut connection)
+      .await
+      .unwrap();
+
+    assert!(ttl_updated > 2000);
+    assert!(ttl_updated <= 5000);
+
+    store.clear_store().await.unwrap();
   }
 }
