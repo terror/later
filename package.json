@@ -6,7 +6,8 @@
     "packages/web"
   ],
   "scripts": {
-    "fmt": "prettier --write ."
+    "fmt": "prettier --write .",
+    "fmt-check": "prettier --check ."
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",

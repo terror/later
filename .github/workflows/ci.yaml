@@ -48,7 +48,7 @@ jobs:
         run: bun install
 
       - name: Format
-        run: bunx prettier --check .
+        run: bun run format-check
 
       - name: Lint
         working-directory: packages/web
