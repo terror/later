@@ -308,37 +308,6 @@ pub(crate) fn find_candidates(
     }
   }
 
-  if is_candidate(handle.clone(), minimum_candidate_length) {
-    let score = calc_content_score(handle.clone());
-
-    if let Some(c) = id
-      .to_str()
-      .map(|id| id.to_string())
-      .and_then(|id| candidates.get(&id))
-    {
-      c.score.set(c.score.get() + score)
-    }
-
-    if let Some(c) = id
-      .parent()
-      .and_then(|pid| pid.to_str())
-      .map(|id| id.to_string())
-      .and_then(|pid| candidates.get(&pid))
-    {
-      c.score.set(c.score.get() + score)
-    }
-
-    if let Some(c) = id
-      .parent()
-      .and_then(|p| p.parent())
-      .and_then(|pid| pid.to_str())
-      .map(|id| id.to_string())
-      .and_then(|pid| candidates.get(&pid))
-    {
-      c.score.set(c.score.get() + score)
-    }
-  }
-
   for (i, child) in handle.children.borrow().iter().enumerate() {
     find_candidates(
       id.join(i.to_string()).as_path(),
