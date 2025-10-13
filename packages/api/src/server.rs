@@ -50,6 +50,14 @@ impl Server {
       session_store,
     };
 
+    let governor_config = Arc::new(
+      GovernorConfigBuilder::default()
+        .per_second(5)
+        .burst_size(10)
+        .use_headers()
+        .finish()?,
+    );
+
     let router = Router::new()
       .route("/auth/authorized", get(auth::login_authorized))
       .route("/auth/login", get(auth::login))
@@ -90,7 +98,8 @@ impl Server {
       .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
       .layer(trace_layer)
       .layer(PropagateRequestIdLayer::x_request_id())
-      .layer(CorsLayer::very_permissive());
+      .layer(CorsLayer::very_permissive())
+      .layer(GovernorLayer::new(Arc::clone(&governor_config)));
 
     let router = router.with_state(state).layer(middleware);
 
