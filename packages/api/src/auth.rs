@@ -156,12 +156,37 @@ pub(crate) async fn login_authorized(
     .await
     .context("failed to deserialize response as JSON")?;
 
-  let email = user
-    .get("email")
-    .and_then(Value::as_str)
-    .ok_or_else(|| anyhow!("GitHub user email not provided"))?;
-
   let name = user.get("name").and_then(Value::as_str);
+
+  let emails = client
+    .get("https://api.github.com/user/emails")
+    .bearer_auth(&access_token)
+    .header("User-Agent", "Later-App")
+    .send()
+    .await
+    .context("failed to fetch user emails from GitHub API")?
+    .json::<Value>()
+    .await
+    .context("failed to deserialize emails response as JSON")?;
+
+  let email = emails
+    .as_array()
+    .and_then(|emails| {
+      emails
+        .iter()
+        .find(|email| {
+          email.get("primary").and_then(Value::as_bool).unwrap_or(false)
+            && email.get("verified").and_then(Value::as_bool).unwrap_or(false)
+        })
+        .or_else(|| {
+          emails.iter().find(|email| {
+            email.get("verified").and_then(Value::as_bool).unwrap_or(false)
+          })
+        })
+    })
+    .and_then(|email| email.get("email"))
+    .and_then(Value::as_str)
+    .ok_or_else(|| anyhow!("no verified email found for GitHub user"))?;
 
   let user = db
     .upsert_user(email, name)
