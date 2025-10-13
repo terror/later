@@ -103,7 +103,7 @@ pub async fn login(
     .insert(CSRF_TOKEN, &csrf_token)
     .context("failed in inserting CSRF token into session")?;
 
-  if let Some(redirect) = normalize_redirect(params.redirect) {
+  if let Some(redirect) = params.redirect {
     session
       .insert(REDIRECT_URL, &redirect)
       .context("failed in inserting redirect into session")?;
@@ -151,6 +151,7 @@ pub(crate) async fn login_authorized(
   TypedHeader(cookies): TypedHeader<headers::Cookie>,
 ) -> Result<impl IntoResponse> {
   let redirect = validate_csrf_token(&query, &cookies, &store).await?;
+
   let AuthRequest {
     code,
     state: _,
@@ -244,7 +245,7 @@ pub(crate) async fn login_authorized(
   );
 
   let redirect_target = redirect
-    .or_else(|| normalize_redirect(query_redirect))
+    .or(query_redirect)
     .unwrap_or_else(|| "/".to_string());
 
   Ok((headers, Redirect::to(redirect_target.as_str())))
@@ -268,8 +269,7 @@ pub(crate) async fn logout(
   AppState(store): AppState<RedisSessionStore>,
   TypedHeader(cookies): TypedHeader<headers::Cookie>,
 ) -> Result<impl IntoResponse> {
-  let redirect_target =
-    normalize_redirect(params.redirect).unwrap_or_else(|| "/".to_string());
+  let redirect_target = params.redirect.unwrap_or_else(|| "/".to_string());
 
   let cookie = match cookies.get(COOKIE_NAME) {
     Some(cookie) => cookie.to_string(),
@@ -331,7 +331,7 @@ async fn validate_csrf_token(
     .context("CSRF token not found in session")?
     .to_owned();
 
-  let redirect = normalize_redirect(session.get::<String>(REDIRECT_URL));
+  let redirect = session.get::<String>(REDIRECT_URL);
 
   store
     .destroy_session(session)
@@ -343,33 +343,4 @@ async fn validate_csrf_token(
   }
 
   Ok(redirect)
-}
-
-fn normalize_redirect(target: Option<String>) -> Option<String> {
-  target.and_then(|value| {
-    let trimmed = value.trim();
-
-    if trimmed.is_empty() {
-      return None;
-    }
-
-    let uri = trimmed.parse::<http::Uri>().ok()?;
-
-    if let Some(scheme) = uri.scheme_str() {
-      return match scheme {
-        "http" | "https" => Some(uri.to_string()),
-        _ => None,
-      };
-    }
-
-    if uri.authority().is_some() {
-      return None;
-    }
-
-    if uri.path().starts_with('/') {
-      return Some(uri.to_string());
-    }
-
-    None
-  })
 }

@@ -3,48 +3,22 @@ import { useAuth } from '@/hooks/use-auth';
 import { getLoginUrl } from '@/lib/api';
 import { motion } from 'framer-motion';
 import { Github } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
-import { Location, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function SignInPage() {
   const { user, loading } = useAuth();
 
-  const location = useLocation();
   const navigate = useNavigate();
-
-  const redirectTarget = useMemo(() => {
-    const params = new URLSearchParams(location.search);
-    const queryRedirect = params.get('redirect');
-
-    if (queryRedirect) {
-      return queryRedirect;
-    }
-
-    const state = location.state as { from?: Location } | null;
-    const from = state?.from;
-
-    if (from) {
-      return `${from.pathname}${from.search}${from.hash}`;
-    }
-
-    return '/dashboard';
-  }, [location]);
 
   useEffect(() => {
     if (!loading && user) {
-      const isInternalRedirect = redirectTarget.startsWith('/');
-
-      if (isInternalRedirect) {
-        navigate(redirectTarget, { replace: true });
-        return;
-      }
-
-      window.location.href = redirectTarget;
+      navigate('/')
     }
-  }, [user, loading, navigate, redirectTarget]);
+  }, [user, loading, navigate]);
 
   const handleSignIn = () => {
-    window.location.href = getLoginUrl(redirectTarget);
+    window.location.href = getLoginUrl();
   };
 
   if (loading) {
