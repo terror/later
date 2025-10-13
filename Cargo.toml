@@ -3,4 +3,4 @@ resolver = "3"
 members = ["packages/api", "packages/db", "packages/model"]
 
 [workspace.dependencies]
-sqlx = { version = "0.8.6", default-features = false, features = [ "chrono", "derive", "macros", "migrate", "postgres", "runtime-tokio-rustls", "uuid", ] }
+sqlx = { version = "0.8.6", default-features = false, features = ["chrono", "derive", "macros", "migrate", "postgres", "runtime-tokio-rustls", "uuid"] }
