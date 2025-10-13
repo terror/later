@@ -1,16 +1,7 @@
 import { getSession } from '@/lib/api';
 import type { User } from '@/lib/types';
-import { createContext, useEffect, useState } from 'react';
-
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  refreshSession: () => Promise<void>;
-}
-
-export const AuthContext = createContext<AuthContextType | undefined>(
-  undefined
-);
+import { AuthContext } from '@/contexts/auth-context';
+import { useEffect, useState } from 'react';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
