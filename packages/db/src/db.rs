@@ -1,7 +1,4 @@
-use {
-  super::*,
-  sqlx::migrate::MigrateDatabase,
-};
+use {super::*, sqlx::migrate::MigrateDatabase};
 
 #[derive(Debug, Clone)]
 pub struct Db {
