@@ -37,7 +37,7 @@ use {
   serde::Deserialize,
   serde_json::Value,
   server::Server,
-  state::{ClientOrigin, State},
+  state::State,
   std::{
     backtrace::BacktraceStatus,
     convert::Infallible,
