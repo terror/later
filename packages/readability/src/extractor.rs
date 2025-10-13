@@ -1,21 +1,5 @@
-//! Public extraction API and configuration types.
+use super::*;
 
-use crate::dom;
-use crate::error::{Error, Result};
-use crate::scorer::{self, Candidate};
-use html5ever::tendril::stream::TendrilSink;
-use html5ever::{parse_document, serialize};
-use markup5ever_rcdom::{RcDom, SerializableHandle};
-use std::cell::Cell;
-use std::collections::BTreeMap;
-use std::io::Read;
-use std::path::Path;
-use url::Url;
-
-#[cfg(feature = "reqwest")]
-use std::time::Duration;
-
-/// Controls which HTML attributes will be stripped during sanitization.
 #[derive(Debug, Clone, Copy)]
 pub struct SanitizerOptions {
   /// Remove `id` attributes when `true`.
@@ -47,7 +31,6 @@ impl SanitizerOptions {
   }
 }
 
-/// Fine-grained configuration that influences readability extraction.
 #[derive(Debug, Clone, Copy)]
 pub struct ExtractorConfig {
   /// Sanitizer behaviour when pruning attributes.
@@ -68,7 +51,6 @@ impl Default for ExtractorConfig {
   }
 }
 
-/// Configurable builder that produces [`Extractor`] instances.
 #[derive(Debug, Default, Clone)]
 pub struct ExtractorBuilder {
   config: ExtractorConfig,
@@ -128,7 +110,6 @@ impl ExtractorBuilder {
   }
 }
 
-/// High-level API for extracting readability content out of documents.
 #[derive(Debug, Clone)]
 pub struct Extractor {
   config: ExtractorConfig,
@@ -260,15 +241,4 @@ impl Extractor {
 
     self.extract(&mut response, &parsed_url)
   }
-}
-
-/// Result of readability extraction.
-#[derive(Debug, Clone)]
-pub struct Product {
-  /// Extracted `<title>` value.
-  pub title: String,
-  /// HTML snippet containing the best candidate node.
-  pub content: String,
-  /// Plain-text representation of the candidate node.
-  pub text: String,
 }

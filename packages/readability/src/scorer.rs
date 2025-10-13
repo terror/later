@@ -1,22 +1,4 @@
-use crate::dom;
-use crate::extractor::SanitizerOptions;
-use html5ever::tree_builder::TreeSink;
-use html5ever::tree_builder::{ElementFlags, NodeOrText};
-use html5ever::{LocalName, QualName, namespace_url, ns};
-use lazy_static::lazy_static;
-use markup5ever_rcdom::Handle;
-use markup5ever_rcdom::Node;
-use markup5ever_rcdom::NodeData::{
-  Comment, Doctype, Document, ProcessingInstruction,
-};
-use markup5ever_rcdom::NodeData::{Element, Text};
-use markup5ever_rcdom::RcDom;
-use regex::Regex;
-use std::cell::Cell;
-use std::collections::BTreeMap;
-use std::path::Path;
-use std::rc::Rc;
-use url::Url;
+use super::*;
 
 pub(crate) static PUNCTUATIONS_REGEX: &str =
   r"([、。，．！？]|\.[^A-Za-z0-9]|,[^0-9]|!|\?)";
@@ -174,7 +156,7 @@ pub(crate) fn calc_content_score(handle: Handle) -> f32 {
 pub(crate) fn get_class_weight(handle: Handle) -> f32 {
   let mut weight: f32 = 0.0;
 
-  if let Element {
+  if let NodeData::Element {
     name: _, ref attrs, ..
   } = handle.data
   {
@@ -198,7 +180,7 @@ pub(crate) fn preprocess(
   handle: Handle,
   title: &mut String,
 ) -> bool {
-  if let Element {
+  if let NodeData::Element {
     ref name,
     ref attrs,
     ..
@@ -237,7 +219,7 @@ pub(crate) fn preprocess(
     let c = child.clone();
 
     match c.data {
-      Element { ref name, .. } => {
+      NodeData::Element { ref name, .. } => {
         let tag_name = name.local.as_ref();
         if "br" == tag_name.to_lowercase() {
           br_count += 1
@@ -245,7 +227,7 @@ pub(crate) fn preprocess(
           br_count = 0
         }
       }
-      Text { ref contents } => {
+      NodeData::Text { ref contents } => {
         let s = contents.borrow();
         if br_count >= 2 && !s.trim().is_empty() {
           paragraph_nodes.push(child.clone());
@@ -269,7 +251,7 @@ pub(crate) fn preprocess(
 
     dom.remove_from_parent(node);
 
-    if let Text { ref contents } = node.clone().data {
+    if let NodeData::Text { ref contents } = node.clone().data {
       let text = contents.clone().into_inner().clone();
       dom.append(&p, NodeOrText::AppendText(text))
     }
@@ -354,16 +336,16 @@ pub(crate) fn clean(
   let mut useless = false;
 
   match handle.data {
-    Document => (),
-    Doctype { .. } => (),
-    Text { ref contents } => {
+    NodeData::Document => (),
+    NodeData::Doctype { .. } => (),
+    NodeData::Text { ref contents } => {
       let s = contents.borrow();
       if s.trim().is_empty() {
         useless = true
       }
     }
-    Comment { .. } => useless = true,
-    Element {
+    NodeData::Comment { .. } => useless = true,
+    NodeData::Element {
       ref name,
       ref attrs,
       ..
@@ -396,7 +378,7 @@ pub(crate) fn clean(
         }
       }
     }
-    ProcessingInstruction { .. } => unreachable!(),
+    NodeData::ProcessingInstruction { .. } => unreachable!(),
   }
 
   let mut useless_nodes = vec![];
