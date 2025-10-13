@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
-import { Github } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Github } from 'lucide-react';
 
 export default function SignInPage() {
   return (
