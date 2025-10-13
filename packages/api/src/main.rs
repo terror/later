@@ -44,9 +44,11 @@ use {
     fmt::{self, Debug, Display, Formatter},
     net::SocketAddr,
     process,
+    sync::Arc,
   },
   tokio::net::TcpListener,
   tower::ServiceBuilder,
+  tower_governor::{GovernorLayer, governor::GovernorConfigBuilder},
   tower_http::{
     LatencyUnit,
     cors::CorsLayer,
