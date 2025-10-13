@@ -3,6 +3,7 @@ use super::*;
 pub(crate) static COOKIE_NAME: &str = "SESSION";
 
 static CSRF_TOKEN: &str = "csrf_token";
+static REDIRECT_URL: &str = "redirect_url";
 
 pub(crate) type ConfiguredOAuthClient = oauth2::Client<
   oauth2::StandardErrorResponse<oauth2::basic::BasicErrorResponseType>,
@@ -27,15 +28,19 @@ pub(crate) struct AuthRedirect;
 
 impl IntoResponse for AuthRedirect {
   fn into_response(self) -> Response {
-    Redirect::temporary("/auth/github").into_response()
+    Redirect::temporary("/auth/login").into_response()
   }
 }
 
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct AuthRequest {
   code: String,
   state: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct RedirectParams {
+  redirect: Option<String>,
 }
 
 pub(crate) fn oauth_client() -> Result<ConfiguredOAuthClient> {
@@ -46,7 +51,7 @@ pub(crate) fn oauth_client() -> Result<ConfiguredOAuthClient> {
     .context("GITHUB_CLIENT_SECRET must be set")?;
 
   let redirect_url = env::var("GITHUB_REDIRECT_URL")
-    .unwrap_or_else(|_| "http://127.0.0.1:80/auth/authorized".to_string());
+    .context("GITHUB_REDIRECT_URL must be set")?;
 
   let auth_url =
     AuthUrl::new("https://github.com/login/oauth/authorize".to_string())
@@ -73,12 +78,16 @@ pub(crate) fn oauth_client() -> Result<ConfiguredOAuthClient> {
   path = "/auth/login",
   tag = "auth",
   description = "Initiate the GitHub OAuth flow and set the CSRF session cookie.",
+  params(
+    ("redirect" = String, Query, description = "URL to redirect to after authentication completes.")
+  ),
   responses(
     (status = StatusCode::SEE_OTHER, description = "Redirect to GitHub's OAuth authorization page."),
     (status = StatusCode::INTERNAL_SERVER_ERROR, description = "Failed to initiate the OAuth flow.", body = String)
   )
 )]
 pub async fn login(
+  Query(params): Query<RedirectParams>,
   AppState(client): AppState<ConfiguredOAuthClient>,
   AppState(store): AppState<RedisSessionStore>,
 ) -> Result<impl IntoResponse> {
@@ -92,6 +101,12 @@ pub async fn login(
   session
     .insert(CSRF_TOKEN, &csrf_token)
     .context("failed in inserting CSRF token into session")?;
+
+  if let Some(redirect) = params.redirect {
+    session
+      .insert(REDIRECT_URL, &redirect)
+      .context("failed in inserting redirect into session")?;
+  }
 
   let cookie = store
     .store_session(session)
@@ -131,13 +146,12 @@ pub(crate) async fn login_authorized(
   AppState(db): AppState<Db>,
   AppState(store): AppState<RedisSessionStore>,
   AppState(oauth_client): AppState<ConfiguredOAuthClient>,
-  AppState(client_origin): AppState<ClientOrigin>,
   TypedHeader(cookies): TypedHeader<headers::Cookie>,
 ) -> Result<impl IntoResponse> {
-  validate_csrf_token(&query, &cookies, &store).await?;
+  let redirect = validate_csrf_token(&query, &cookies, &store).await?;
 
   let token = oauth_client
-    .exchange_code(oauth2::AuthorizationCode::new(query.code.clone()))
+    .exchange_code(oauth2::AuthorizationCode::new(query.code))
     .request_async(&reqwest::Client::new())
     .await
     .context("failed in sending request request to authorization server")?;
@@ -170,32 +184,29 @@ pub(crate) async fn login_authorized(
     .await
     .context("failed to deserialize emails response as JSON")?;
 
+  let is_verified = |email: &&Value| {
+    email
+      .get("verified")
+      .and_then(Value::as_bool)
+      .unwrap_or(false)
+  };
+
+  let is_primary = |email: &&Value| {
+    email
+      .get("primary")
+      .and_then(Value::as_bool)
+      .unwrap_or(false)
+  };
+
   let email = emails
     .as_array()
     .and_then(|emails| {
       emails
         .iter()
-        .find(|email| {
-          email
-            .get("primary")
-            .and_then(Value::as_bool)
-            .unwrap_or(false)
-            && email
-              .get("verified")
-              .and_then(Value::as_bool)
-              .unwrap_or(false)
-        })
-        .or_else(|| {
-          emails.iter().find(|email| {
-            email
-              .get("verified")
-              .and_then(Value::as_bool)
-              .unwrap_or(false)
-          })
-        })
+        .find(|e| is_primary(e) && is_verified(e))
+        .or_else(|| emails.iter().find(is_verified))
+        .and_then(|e| e.get("email")?.as_str())
     })
-    .and_then(|email| email.get("email"))
-    .and_then(Value::as_str)
     .ok_or_else(|| anyhow!("no verified email found for GitHub user"))?;
 
   let user = db
@@ -225,7 +236,9 @@ pub(crate) async fn login_authorized(
     cookie.parse().context("failed to parse cookie")?,
   );
 
-  Ok((headers, Redirect::to(client_origin.as_str())))
+  let redirect_target = redirect.unwrap_or_else(|| "/".to_string());
+
+  Ok((headers, Redirect::to(redirect_target.as_str())))
 }
 
 #[utoipa::path(
@@ -233,27 +246,33 @@ pub(crate) async fn login_authorized(
   path = "/auth/logout",
   tag = "auth",
   description = "Invalidate the active user session and redirect back to the client.",
+  params(
+    ("redirect" = String, Query, description = "URL to redirect to after logout completes.")
+  ),
   responses(
     (status = StatusCode::SEE_OTHER, description = "Redirect to the requested post-logout location."),
     (status = StatusCode::INTERNAL_SERVER_ERROR, description = "Failed to destroy the session.", body = String)
   )
 )]
 pub(crate) async fn logout(
+  Query(params): Query<RedirectParams>,
   AppState(store): AppState<RedisSessionStore>,
-  AppState(client_origin): AppState<ClientOrigin>,
   TypedHeader(cookies): TypedHeader<headers::Cookie>,
 ) -> Result<impl IntoResponse> {
-  let cookie = cookies
-    .get(COOKIE_NAME)
-    .context("unexpected error getting cookie name")?;
+  let redirect_target = params.redirect.unwrap_or_else(|| "/".to_string());
+
+  let cookie = match cookies.get(COOKIE_NAME) {
+    Some(cookie) => cookie.to_string(),
+    None => return Ok(Redirect::to(redirect_target.as_str())),
+  };
 
   let session = match store
-    .load_session(cookie.to_string())
+    .load_session(cookie)
     .await
     .context("failed to load session")?
   {
     Some(s) => s,
-    None => return Ok(Redirect::to(client_origin.as_str())),
+    None => return Ok(Redirect::to(redirect_target.as_str())),
   };
 
   store
@@ -261,7 +280,7 @@ pub(crate) async fn logout(
     .await
     .context("failed to destroy session")?;
 
-  Ok(Redirect::to(client_origin.as_str()))
+  Ok(Redirect::to(redirect_target.as_str()))
 }
 
 #[utoipa::path(
@@ -282,7 +301,7 @@ async fn validate_csrf_token(
   auth_request: &AuthRequest,
   cookies: &headers::Cookie,
   store: &RedisSessionStore,
-) -> Result<()> {
+) -> Result<Option<String>> {
   let cookie = cookies
     .get(COOKIE_NAME)
     .context("unexpected error getting cookie name")?
@@ -302,6 +321,8 @@ async fn validate_csrf_token(
     .context("CSRF token not found in session")?
     .to_owned();
 
+  let redirect = session.get::<String>(REDIRECT_URL);
+
   store
     .destroy_session(session)
     .await
@@ -311,5 +332,5 @@ async fn validate_csrf_token(
     return Err(anyhow!("CSRF token mismatch").into());
   }
 
-  Ok(())
+  Ok(redirect)
 }

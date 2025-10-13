@@ -20,9 +20,9 @@ export async function getSession(): Promise<User | null> {
 }
 
 export function getLoginUrl(): string {
-  return `${API_BASE_URL}/auth/login`;
+  return `${API_BASE_URL}/auth/login?redirect=${window.location.href}`;
 }
 
 export function getLogoutUrl(): string {
-  return `${API_BASE_URL}/auth/logout`;
+  return `${API_BASE_URL}/auth/logout?redirect=${window.location.href}`;
 }
