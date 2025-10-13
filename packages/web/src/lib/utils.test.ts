@@ -15,12 +15,14 @@ describe('cn', () => {
         undefined,
         false && 'hidden',
         ['text-sm', { 'font-semibold': true }],
-        { 'bg-red-500': false, 'text-blue-500': true },
-      ),
+        { 'bg-red-500': false, 'text-blue-500': true }
+      )
     ).toBe('px-2 text-sm font-semibold text-blue-500');
   });
 
   test('resolves Tailwind class conflicts by keeping the last occurrence', () => {
-    expect(cn('p-2', 'p-4', ['bg-red-500', 'bg-green-500'])).toBe('p-4 bg-green-500');
+    expect(cn('p-2', 'p-4', ['bg-red-500', 'bg-green-500'])).toBe(
+      'p-4 bg-green-500'
+    );
   });
 });
