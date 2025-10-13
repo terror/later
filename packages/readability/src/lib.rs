@@ -1,5 +1,5 @@
 use {
-  html5ever::{tendril::StrTendril, Attribute},
+  html5ever::{Attribute, tendril::StrTendril},
   markup5ever_rcdom::{
     Handle, Node,
     NodeData::{Element, Text},

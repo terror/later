@@ -2,7 +2,7 @@ use crate::dom;
 use crate::extractor::SanitizerOptions;
 use html5ever::tree_builder::TreeSink;
 use html5ever::tree_builder::{ElementFlags, NodeOrText};
-use html5ever::{namespace_url, ns, LocalName, QualName};
+use html5ever::{LocalName, QualName, namespace_url, ns};
 use lazy_static::lazy_static;
 use markup5ever_rcdom::Handle;
 use markup5ever_rcdom::Node;
@@ -21,21 +21,17 @@ use url::Url;
 pub(crate) static PUNCTUATIONS_REGEX: &str =
   r"([、。，．！？]|\.[^A-Za-z0-9]|,[^0-9]|!|\?)";
 
-pub(crate) static UNLIKELY_CANDIDATES: &str =
-  "combx|comment|community|disqus|extra|foot|header|menu\
+pub(crate) static UNLIKELY_CANDIDATES: &str = "combx|comment|community|disqus|extra|foot|header|menu\
      |remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate\
      |pagination|pager|popup|tweet|twitter\
      |ssba";
 
-pub(crate) static LIKELY_CANDIDATES: &str =
-  "and|article|body|column|main|shadow\
+pub(crate) static LIKELY_CANDIDATES: &str = "and|article|body|column|main|shadow\
                                               |content|hentry";
-pub(crate) static POSITIVE_CANDIDATES: &str =
-  "article|body|content|entry|hentry|main|page\
+pub(crate) static POSITIVE_CANDIDATES: &str = "article|body|content|entry|hentry|main|page\
      |pagination|post|text|blog|story";
 
-pub(crate) static NEGATIVE_CANDIDATES: &str =
-  "combx|comment|com|contact|foot|footer|footnote\
+pub(crate) static NEGATIVE_CANDIDATES: &str = "combx|comment|com|contact|foot|footer|footnote\
      |masthead|media|meta|outbrain|promo|related\
      |scroll|shoutbox|sidebar|sponsor|shopping\
      |tags|tool|widget|form|textfield\

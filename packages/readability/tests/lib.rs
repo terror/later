@@ -19,7 +19,10 @@ fn fix_rel_links() {
 
   let product = Extractor::default().extract(&mut file, &url).unwrap();
 
-  assert_eq!(product.content, "<!DOCTYPE html><html><head><title>This is title</title></head><body><p><a href=\"https://example.com/poop\"> poop </a></p></body></html>");
+  assert_eq!(
+    product.content,
+    "<!DOCTYPE html><html><head><title>This is title</title></head><body><p><a href=\"https://example.com/poop\"> poop </a></p></body></html>"
+  );
 }
 
 #[test]
@@ -30,5 +33,8 @@ fn fix_img_links() {
 
   let product = Extractor::default().extract(&mut file, &url).unwrap();
 
-  assert_eq!(product.content, "<!DOCTYPE html><html><head><title>This is title</title></head><body><p><img src=\"https://example.com/poop.png\"></p></body></html>");
+  assert_eq!(
+    product.content,
+    "<!DOCTYPE html><html><head><title>This is title</title></head><body><p><img src=\"https://example.com/poop.png\"></p></body></html>"
+  );
 }

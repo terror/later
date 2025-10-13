@@ -1,17 +1,8 @@
 [package]
 name = "readability"
-version = "0.3.0"
-authors = ["Hiroki Kumamoto <kumabook@live.jp>"]
-license = "MIT"
-edition = "2021"
-rust-version = "1.70"
-homepage = "https://github.com/kumabook/readability"
-repository = "https://github.com/kumabook/readability.git"
-documentation = "https://docs.rs/readability"
-description = "Port of arc90's readability project to rust"
-keywords = ["readability"]
-categories = ["parsing", "web-programming::html"]
-readme = "README.md"
+version = "0.0.0"
+edition = "2024"
+publish = false
 
 [dependencies]
 regex = "1.9"
