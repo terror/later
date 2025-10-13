@@ -8,6 +8,7 @@ import {
 } from 'framer-motion';
 import { BookmarkIcon, GlobeIcon, ShareIcon } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 
 const features = [
   {
@@ -153,8 +154,8 @@ export default function HomePage() {
         <div className='mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8'>
           <span className='text-xl font-semibold tracking-tight'>later</span>
           <div className='flex items-center gap-2 text-sm'>
-            <Button variant='ghost' size='sm'>
-              Sign in
+            <Button variant='ghost' size='sm' asChild>
+              <Link to='/sign-in'>Sign in</Link>
             </Button>
             <Button size='sm' className='px-4'>
               Get started
