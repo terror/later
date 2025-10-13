@@ -25,7 +25,6 @@ use {
     header::{self, SET_COOKIE, USER_AGENT},
     request::Parts,
   },
-  model::NewUser,
   oauth2::{
     AuthUrl, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope,
     TokenResponse, TokenUrl, basic::BasicClient as OAuth2BasicClient,

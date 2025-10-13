@@ -19,11 +19,3 @@ pub struct User {
   /// Timestamp for when the user record was most recently updated.
   pub updated_at: DateTime<Utc>,
 }
-
-#[derive(Debug, Clone)]
-pub struct NewUser {
-  /// Primary user email used for authentication.
-  pub email: String,
-  /// Display name supplied by the user, if available.
-  pub name: Option<String>,
-}

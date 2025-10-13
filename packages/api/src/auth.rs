@@ -159,16 +159,12 @@ pub(crate) async fn login_authorized(
   let email = user
     .get("email")
     .and_then(Value::as_str)
-    .ok_or_else(|| anyhow!("GitHub user email not provided"))?
-    .to_owned();
+    .ok_or_else(|| anyhow!("GitHub user email not provided"))?;
 
-  let name = user
-    .get("name")
-    .and_then(Value::as_str)
-    .map(|name| name.to_owned());
+  let name = user.get("name").and_then(Value::as_str);
 
   let user = db
-    .upsert_user(NewUser { email, name })
+    .upsert_user(email, name)
     .await
     .context("failed to persist authenticated user")?;
 

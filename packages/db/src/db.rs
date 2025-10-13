@@ -17,11 +17,14 @@ impl Db {
     Ok(Self { pool })
   }
 
-  pub async fn upsert_user(&self, new_user: NewUser) -> Result<User> {
-    let NewUser { email, name } = new_user;
-
-    let user = sqlx::query_as::<_, User>(
-      r#"
+  pub async fn upsert_user(
+    &self,
+    email: &str,
+    name: Option<&str>,
+  ) -> Result<User> {
+    Ok(
+      sqlx::query_as::<_, User>(
+        r#"
       INSERT INTO users (email, name)
       VALUES ($1, $2)
       ON CONFLICT (email) DO UPDATE
@@ -35,13 +38,12 @@ impl Db {
         created_at,
         updated_at
       "#,
+      )
+      .bind(email)
+      .bind(name)
+      .fetch_one(&self.pool)
+      .await?,
     )
-    .bind(email)
-    .bind(name)
-    .fetch_one(&self.pool)
-    .await?;
-
-    Ok(user)
   }
 
   pub async fn user_count(&self) -> Result<i64> {
@@ -114,12 +116,9 @@ mod tests {
 
     assert_eq!(db.user_count().await.unwrap(), 0);
 
-    db.upsert_user(NewUser {
-      email: "test@example.com".into(),
-      name: Some("Test User".into()),
-    })
-    .await
-    .unwrap();
+    db.upsert_user("test@example.com", Some("Test User"))
+      .await
+      .unwrap();
 
     assert_eq!(db.user_count().await.unwrap(), 1);
 
