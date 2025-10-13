@@ -1,4 +1,8 @@
-use {super::*, model::{NewUser, User}, sqlx::migrate::MigrateDatabase};
+use {
+  super::*,
+  model::{NewUser, User},
+  sqlx::migrate::MigrateDatabase,
+};
 
 #[derive(Debug, Clone)]
 pub struct Db {
