@@ -11,8 +11,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
 
     try {
-      const sessionUser = await getSession();
-      setUser(sessionUser);
+      setUser(await getSession());
+    } catch (error) {
+      console.error('Failed to refresh session', error);
+      setUser(null);
     } finally {
       setLoading(false);
     }
