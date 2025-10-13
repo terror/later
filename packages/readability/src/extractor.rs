@@ -148,14 +148,16 @@ impl Extractor {
 
     let handle = dom.document.clone();
 
-    scorer::preprocess(&mut dom, handle.clone(), &mut title);
+    let scorer =
+      Scorer::new(self.config.minimum_candidate_length, self.config.sanitizer);
 
-    scorer::find_candidates(
+    scorer.preprocess(&mut dom, handle.clone(), &mut title);
+
+    scorer.find_candidates(
       Path::new("/"),
       handle.clone(),
       &mut candidates,
       &mut nodes,
-      self.config.minimum_candidate_length,
     );
 
     let mut id: &str = "/";
@@ -166,8 +168,7 @@ impl Extractor {
     };
 
     for (i, c) in candidates.iter() {
-      let score =
-        c.score.get() * (1.0 - scorer::get_link_density(c.node.clone()));
+      let score = c.score.get() * (1.0 - scorer.link_density(c.node.clone()));
 
       c.score.set(score);
 
@@ -182,14 +183,7 @@ impl Extractor {
 
     let node = top_candidate.node.clone();
 
-    scorer::clean(
-      &mut dom,
-      Path::new(id),
-      node.clone(),
-      url,
-      &candidates,
-      self.config.sanitizer,
-    );
+    scorer.clean(&mut dom, Path::new(id), node.clone(), url, &candidates);
 
     let mut bytes = vec![];
 

@@ -9,7 +9,7 @@ use {
   lazy_static::lazy_static,
   markup5ever_rcdom::{Handle, Node, NodeData, RcDom, SerializableHandle},
   regex::Regex,
-  scorer::Candidate,
+  scorer::{Candidate, Scorer},
   std::{
     cell::Cell,
     collections::BTreeMap,
