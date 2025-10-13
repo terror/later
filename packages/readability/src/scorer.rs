@@ -68,7 +68,7 @@ impl Scorer {
     handle: Handle,
     title: &mut String,
   ) {
-    self.preprocess_node(dom, handle, title);
+    Self::preprocess_node(dom, handle, title);
   }
 
   pub(crate) fn find_candidates(
@@ -97,7 +97,6 @@ impl Scorer {
   }
 
   fn preprocess_node(
-    &self,
     dom: &mut RcDom,
     handle: Handle,
     title: &mut String,
@@ -132,7 +131,7 @@ impl Scorer {
     let mut br_count = 0;
 
     for child in handle.children.borrow().iter() {
-      if self.preprocess_node(dom, child.clone(), title) {
+      if Self::preprocess_node(dom, child.clone(), title) {
         useless_nodes.push(child.clone());
       }
 
