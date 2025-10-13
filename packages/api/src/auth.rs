@@ -36,7 +36,6 @@ impl IntoResponse for AuthRedirect {
 pub(crate) struct AuthRequest {
   code: String,
   state: String,
-  redirect: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -136,7 +135,6 @@ pub async fn login(
   params(
     ("code" = String, Query, description = "Authorization code returned by GitHub."),
     ("state" = String, Query, description = "Opaque state used to validate the CSRF token."),
-    ("redirect" = String, Query, description = "URL to redirect to after authentication completes.")
   ),
   responses(
     (status = StatusCode::SEE_OTHER, description = "Redirect to the application after creating the session."),
@@ -152,14 +150,8 @@ pub(crate) async fn login_authorized(
 ) -> Result<impl IntoResponse> {
   let redirect = validate_csrf_token(&query, &cookies, &store).await?;
 
-  let AuthRequest {
-    code,
-    state: _,
-    redirect: query_redirect,
-  } = query;
-
   let token = oauth_client
-    .exchange_code(oauth2::AuthorizationCode::new(code))
+    .exchange_code(oauth2::AuthorizationCode::new(query.code))
     .request_async(&reqwest::Client::new())
     .await
     .context("failed in sending request request to authorization server")?;
@@ -244,9 +236,7 @@ pub(crate) async fn login_authorized(
     cookie.parse().context("failed to parse cookie")?,
   );
 
-  let redirect_target = redirect
-    .or(query_redirect)
-    .unwrap_or_else(|| "/".to_string());
+  let redirect_target = redirect.unwrap_or_else(|| "/".to_string());
 
   Ok((headers, Redirect::to(redirect_target.as_str())))
 }
