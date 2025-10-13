@@ -1,11 +1,12 @@
 use {
   chrono::{DateTime, Utc},
   serde::{Deserialize, Serialize},
+  sqlx::FromRow,
   utoipa::ToSchema,
   uuid::Uuid,
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, FromRow)]
 pub struct User {
   /// Unique identifier for the user.
   pub user_id: Uuid,

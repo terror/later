@@ -1,8 +1,4 @@
-use {
-  super::*,
-  model::{NewUser, User},
-  sqlx::{Row, migrate::MigrateDatabase},
-};
+use {super::*, model::{NewUser, User}, sqlx::migrate::MigrateDatabase};
 
 #[derive(Debug, Clone)]
 pub struct Db {
@@ -38,7 +34,7 @@ impl Db {
       avatar_url,
     } = new_user;
 
-    let row = sqlx::query(
+    let user = sqlx::query_as::<_, User>(
       r#"
       INSERT INTO users (github_id, email, username, name, avatar_url)
       VALUES ($1, $2, $3, $4, $5)
@@ -67,16 +63,7 @@ impl Db {
     .fetch_one(&self.pool)
     .await?;
 
-    Ok(User {
-      user_id: row.try_get("user_id")?,
-      github_id: row.try_get("github_id")?,
-      email: row.try_get("email")?,
-      username: row.try_get("username")?,
-      name: row.try_get("name")?,
-      avatar_url: row.try_get("avatar_url")?,
-      created_at: row.try_get("created_at")?,
-      updated_at: row.try_get("updated_at")?,
-    })
+    Ok(user)
   }
 
   pub async fn user_count(&self) -> Result<i64> {

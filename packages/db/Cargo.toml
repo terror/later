@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 model = { path = "../model" }
-sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio-rustls", "chrono", "uuid"] }
+sqlx = { workspace = true }
 thiserror = "2.0.17"
 
 [dev-dependencies]
