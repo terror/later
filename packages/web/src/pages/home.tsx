@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { motion } from 'framer-motion';
+import { Construction } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -50,16 +51,20 @@ export default function HomePage() {
           transition={{ duration: 0.7, delay: 0.1 }}
         >
           <div className='mx-auto max-w-3xl text-center'>
-            <span className='border-border/80 inline-flex items-center rounded-full border px-3 py-1 text-xs uppercase tracking-[0.3em]'>
-              Calm your reading list
-            </span>
+            <a
+              href='https://github.com/terror/later'
+              target='_blank'
+              rel='noreferrer'
+              className='border-border/80 hover:bg-muted inline-flex items-center rounded-full border px-3 py-1 text-xs uppercase tracking-[0.3em] transition'
+            >
+              <Construction className='mr-2 h-3.5 w-3.5' aria-hidden='true' />
+              In development · GitHub
+            </a>
             <h1 className='mt-10 text-balance text-4xl font-semibold tracking-tight sm:text-6xl'>
-              Save what matters, revisit when it feels right.
+              Save anything. Read anywhere.
             </h1>
             <p className='text-muted-foreground mx-auto mt-6 max-w-2xl text-pretty text-base leading-7 sm:text-lg'>
-              Later is a minimal space for articles, newsletters, and ideas
-              worth keeping. Capture links in a second, return to a focused
-              reader, and keep your queue tangible—not overwhelming.
+              Later keeps links tidy so you can come back on your own time.
             </p>
             <div className='mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4'>
               <Button size='lg' className='w-full sm:w-auto sm:px-8'>
