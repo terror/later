@@ -113,6 +113,11 @@ jobs:
           cargo --version
           cargo clippy --version
 
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
+
       - name: Forbid
         run: ./bin/forbid
 
