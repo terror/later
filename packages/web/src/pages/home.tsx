@@ -69,6 +69,9 @@ const steps = [
   },
 ];
 
+const primaryCtaLabel = 'Get started';
+const secondaryCtaLabel = 'Join the waitlist';
+
 function MetricCard({ label, value, suffix, decimals = 0, description, delay }: Metric & { delay: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, amount: 0.6 });
@@ -154,10 +157,10 @@ export default function HomePage() {
             </p>
             <div className='mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4'>
               <Button size='lg' className='w-full sm:w-auto sm:px-8'>
-                Start free
+                {primaryCtaLabel}
               </Button>
               <Button variant='outline' size='lg' className='w-full sm:w-auto'>
-                See how it works
+                {secondaryCtaLabel}
               </Button>
             </div>
           </div>
@@ -251,10 +254,10 @@ export default function HomePage() {
           </p>
           <div className='mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row'>
             <Button size='lg' className='w-full sm:w-auto sm:px-8'>
-              Create your space
+              {primaryCtaLabel}
             </Button>
             <Button variant='ghost' size='lg' className='w-full sm:w-auto'>
-              Join the waitlist
+              {secondaryCtaLabel}
             </Button>
           </div>
         </motion.section>
