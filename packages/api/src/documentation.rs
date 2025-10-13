@@ -40,7 +40,7 @@ impl Modify for GithubOAuthSecurity {
   ),
   components(
     schemas(
-      user::User
+      model::User
     )
   ),
   tags(

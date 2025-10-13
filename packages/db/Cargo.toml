@@ -5,5 +5,10 @@ edition = "2024"
 publish = false
 
 [dependencies]
-sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio-rustls"] }
+model = { path = "../model" }
+sqlx = { workspace = true }
 thiserror = "2.0.17"
+
+[dev-dependencies]
+tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread"] }
+url = "2.5.4"

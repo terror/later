@@ -128,6 +128,7 @@ pub async fn login(
 )]
 pub(crate) async fn login_authorized(
   Query(query): Query<AuthRequest>,
+  AppState(db): AppState<Db>,
   AppState(store): AppState<RedisSessionStore>,
   AppState(oauth_client): AppState<ConfiguredOAuthClient>,
   TypedHeader(cookies): TypedHeader<headers::Cookie>,
@@ -142,21 +143,35 @@ pub(crate) async fn login_authorized(
 
   let client = reqwest::Client::new();
 
-  let user_data: User = client
+  let access_token = token.access_token().secret().to_owned();
+
+  let user = client
     .get("https://api.github.com/user")
-    .bearer_auth(token.access_token().secret())
+    .bearer_auth(&access_token)
     .header("User-Agent", "Later-App")
     .send()
     .await
     .context("failed in sending request to GitHub API")?
-    .json::<User>()
+    .json::<Value>()
     .await
     .context("failed to deserialize response as JSON")?;
+
+  let email = user
+    .get("email")
+    .and_then(Value::as_str)
+    .ok_or_else(|| anyhow!("GitHub user email not provided"))?;
+
+  let name = user.get("name").and_then(Value::as_str);
+
+  let user = db
+    .upsert_user(email, name)
+    .await
+    .context("failed to persist authenticated user")?;
 
   let mut session = Session::new();
 
   session
-    .insert("user", &user_data)
+    .insert("user", &user)
     .context("failed in inserting serialized value into session")?;
 
   let cookie = store

@@ -1,12 +1,20 @@
 use super::*;
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub(crate) struct User {
-  pub(crate) id: u64,
-  pub(crate) avatar_url: Option<String>,
-  pub(crate) email: Option<String>,
-  pub(crate) login: String,
-  pub(crate) name: Option<String>,
+#[derive(Debug, Clone)]
+pub(crate) struct User(pub(crate) model::User);
+
+impl Deref for User {
+  type Target = model::User;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl From<User> for model::User {
+  fn from(value: User) -> Self {
+    value.0
+  }
 }
 
 impl<S> OptionalFromRequestParts<S> for User
@@ -60,8 +68,8 @@ where
       .unwrap()
       .ok_or(AuthRedirect)?;
 
-    let user = session.get::<User>("user").ok_or(AuthRedirect)?;
+    let user = session.get::<model::User>("user").ok_or(AuthRedirect)?;
 
-    Ok(user)
+    Ok(User(user))
   }
 }

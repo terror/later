@@ -1,4 +1,4 @@
-use sqlx::PgPool;
+use {model::User, sqlx::PgPool};
 
 mod db;
 mod error;

@@ -34,7 +34,8 @@ use {
     aio::ConnectionManager,
   },
   redis_session_store::RedisSessionStore,
-  serde::{Deserialize, Serialize},
+  serde::Deserialize,
+  serde_json::Value,
   server::Server,
   state::State,
   std::{
@@ -43,6 +44,7 @@ use {
     env,
     fmt::{self, Debug, Display, Formatter},
     net::SocketAddr,
+    ops::Deref,
     process,
     sync::Arc,
   },
@@ -61,9 +63,8 @@ use {
   },
   tracing::{Level, error, info, info_span},
   tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt},
-  user::User,
   utoipa::{
-    Modify, OpenApi, ToSchema,
+    Modify, OpenApi,
     openapi::{
       Components,
       security::{AuthorizationCode, Flow, OAuth2, Scopes, SecurityScheme},
