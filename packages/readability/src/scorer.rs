@@ -74,10 +74,9 @@ pub(crate) fn fix_img_path(handle: Handle, url: &Url) -> bool {
   if !s.starts_with("//")
     && !s.starts_with("http://")
     && !s.starts_with("https://")
+    && let Ok(new_url) = url.join(&s)
   {
-    if let Ok(new_url) = url.join(&s) {
-      dom::set_attr("src", new_url.as_str(), handle)
-    }
+    dom::set_attr("src", new_url.as_str(), handle)
   }
 
   true
@@ -94,10 +93,9 @@ pub(crate) fn fix_anchor_path(handle: Handle, url: &Url) -> bool {
   if !s.starts_with("//")
     && !s.starts_with("http://")
     && !s.starts_with("https://")
+    && let Ok(new_url) = url.join(&s)
   {
-    if let Ok(new_url) = url.join(&s) {
-      dom::set_attr("href", new_url.as_str(), handle)
-    }
+    dom::set_attr("href", new_url.as_str(), handle)
   }
 
   true
@@ -215,13 +213,12 @@ pub(crate) fn preprocess(
     }
 
     for name in ["id", "class"].iter() {
-      if let Some(val) = dom::attr(name, &attrs.borrow()) {
-        if tag_name != "body"
-          && UNLIKELY.is_match(&val)
-          && !LIKELY.is_match(&val)
-        {
-          return true;
-        }
+      if let Some(val) = dom::attr(name, &attrs.borrow())
+        && tag_name != "body"
+        && UNLIKELY.is_match(&val)
+        && !LIKELY.is_match(&val)
+      {
+        return true;
       }
     }
   }
@@ -358,20 +355,20 @@ fn find_or_create_candidate<'a>(
   candidates: &'a mut BTreeMap<String, Candidate>,
   nodes: &BTreeMap<String, Rc<Node>>,
 ) -> Option<&'a Candidate> {
-  if let Some(id) = id.to_str().map(|id| id.to_string()) {
-    if let Some(node) = nodes.get(&id) {
-      if candidates.get(&id).is_none() {
-        candidates.insert(
-          id.clone(),
-          Candidate {
-            node: node.clone(),
-            score: Cell::new(init_content_score(node.clone())),
-          },
-        );
-      }
-
-      return candidates.get(&id);
+  if let Some(id) = id.to_str().map(|id| id.to_string())
+    && let Some(node) = nodes.get(&id)
+  {
+    if candidates.get(&id).is_none() {
+      candidates.insert(
+        id.clone(),
+        Candidate {
+          node: node.clone(),
+          score: Cell::new(init_content_score(node.clone())),
+        },
+      );
     }
+
+    return candidates.get(&id);
   }
 
   None

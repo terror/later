@@ -13,8 +13,6 @@ use std::path::Path;
 use url::Url;
 
 #[cfg(feature = "reqwest")]
-use reqwest;
-#[cfg(feature = "reqwest")]
 use std::time::Duration;
 
 /// Controls which HTML attributes will be stripped during sanitization.
@@ -252,10 +250,10 @@ impl Extractor {
     let mut response = client.get(url).send()?;
 
     if !response.status().is_success() {
-      return Err(Error::Io(std::io::Error::new(
-        std::io::ErrorKind::Other,
-        format!("unexpected response status: {}", response.status()),
-      )));
+      return Err(Error::Io(std::io::Error::other(format!(
+        "unexpected response status: {}",
+        response.status()
+      ))));
     }
 
     let parsed_url = Url::parse(url)?;

@@ -33,17 +33,16 @@ pub(crate) fn set_attr(attr_name: &str, value: &str, handle: Handle) {
     name: _, ref attrs, ..
   } = handle.data
   {
-    let attrs = &mut attrs.borrow_mut();
+    let mut attrs = attrs.borrow_mut();
 
     if let Some(index) = attrs.iter().position(|attr| {
       let name = attr.name.local.as_ref();
       name == attr_name
-    }) {
-      if let Ok(value) = StrTendril::from_str(value) {
-        attrs[index] = Attribute {
-          name: attrs[index].name.clone(),
-          value,
-        }
+    }) && let Ok(value) = StrTendril::from_str(value)
+    {
+      attrs[index] = Attribute {
+        name: attrs[index].name.clone(),
+        value,
       }
     }
   }
@@ -152,7 +151,7 @@ pub(crate) fn has_nodes(handle: Handle, tag_names: &[&'static str]) -> bool {
   for child in handle.children.borrow().iter() {
     let tag_name: &str = &get_tag_name(child.clone()).unwrap_or_default();
 
-    if tag_names.iter().any(|&n| n == tag_name) {
+    if tag_names.contains(&tag_name) {
       return true;
     }
 
