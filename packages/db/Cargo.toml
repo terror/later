@@ -1,0 +1,9 @@
+[package]
+name = "db"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio-rustls"] }
+thiserror = "2.0.17"

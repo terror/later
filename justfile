@@ -34,7 +34,7 @@ fmt: fmt-api fmt-web
 
 [group: 'format']
 fmt-api:
-  cargo fmt -p api
+  cargo fmt --all
 
 [group: 'format']
 fmt-web:
@@ -53,7 +53,7 @@ test: test-api test-web
 
 [group: 'test']
 test-api:
-  cargo test -p api
+  cargo test --all
 
 [group: 'test']
 test-web:
