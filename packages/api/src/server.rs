@@ -40,16 +40,12 @@ impl Server {
       .await
       .context("failed to create Redis session store")?;
 
-    let client_origin = env::var("CLIENT_ORIGIN")
-      .unwrap_or_else(|_| "http://localhost:5173".into());
-
     let oauth_client = auth::oauth_client()?;
 
     let state = State {
       db,
       oauth_client,
       session_store,
-      client_origin: ClientOrigin::new(client_origin),
     };
 
     let governor_config = Arc::new(

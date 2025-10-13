@@ -8,7 +8,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
 
   const handleLogout = () => {
-    window.location.href = getLogoutUrl();
+    window.location.href = getLogoutUrl('/');
   };
 
   return (

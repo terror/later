@@ -3,6 +3,7 @@ use super::*;
 pub(crate) static COOKIE_NAME: &str = "SESSION";
 
 static CSRF_TOKEN: &str = "csrf_token";
+static REDIRECT_URL: &str = "redirect_url";
 
 pub(crate) type ConfiguredOAuthClient = oauth2::Client<
   oauth2::StandardErrorResponse<oauth2::basic::BasicErrorResponseType>,
@@ -35,6 +36,12 @@ impl IntoResponse for AuthRedirect {
 pub(crate) struct AuthRequest {
   code: String,
   state: String,
+  redirect: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct RedirectParams {
+  redirect: Option<String>,
 }
 
 pub(crate) fn oauth_client() -> Result<ConfiguredOAuthClient> {
@@ -72,12 +79,16 @@ pub(crate) fn oauth_client() -> Result<ConfiguredOAuthClient> {
   path = "/auth/login",
   tag = "auth",
   description = "Initiate the GitHub OAuth flow and set the CSRF session cookie.",
+  params(
+    ("redirect" = String, Query, description = "URL to redirect to after authentication completes.")
+  ),
   responses(
     (status = StatusCode::SEE_OTHER, description = "Redirect to GitHub's OAuth authorization page."),
     (status = StatusCode::INTERNAL_SERVER_ERROR, description = "Failed to initiate the OAuth flow.", body = String)
   )
 )]
 pub async fn login(
+  Query(params): Query<RedirectParams>,
   AppState(client): AppState<ConfiguredOAuthClient>,
   AppState(store): AppState<RedisSessionStore>,
 ) -> Result<impl IntoResponse> {
@@ -91,6 +102,12 @@ pub async fn login(
   session
     .insert(CSRF_TOKEN, &csrf_token)
     .context("failed in inserting CSRF token into session")?;
+
+  if let Some(redirect) = normalize_redirect(params.redirect) {
+    session
+      .insert(REDIRECT_URL, &redirect)
+      .context("failed in inserting redirect into session")?;
+  }
 
   let cookie = store
     .store_session(session)
@@ -118,7 +135,8 @@ pub async fn login(
   description = "Complete the GitHub OAuth flow, validate state, and establish a user session.",
   params(
     ("code" = String, Query, description = "Authorization code returned by GitHub."),
-    ("state" = String, Query, description = "Opaque state used to validate the CSRF token.")
+    ("state" = String, Query, description = "Opaque state used to validate the CSRF token."),
+    ("redirect" = String, Query, description = "URL to redirect to after authentication completes.")
   ),
   responses(
     (status = StatusCode::SEE_OTHER, description = "Redirect to the application after creating the session."),
@@ -130,13 +148,17 @@ pub(crate) async fn login_authorized(
   AppState(db): AppState<Db>,
   AppState(store): AppState<RedisSessionStore>,
   AppState(oauth_client): AppState<ConfiguredOAuthClient>,
-  AppState(client_origin): AppState<ClientOrigin>,
   TypedHeader(cookies): TypedHeader<headers::Cookie>,
 ) -> Result<impl IntoResponse> {
-  validate_csrf_token(&query, &cookies, &store).await?;
+  let redirect = validate_csrf_token(&query, &cookies, &store).await?;
+  let AuthRequest {
+    code,
+    state: _,
+    redirect: query_redirect,
+  } = query;
 
   let token = oauth_client
-    .exchange_code(oauth2::AuthorizationCode::new(query.code.clone()))
+    .exchange_code(oauth2::AuthorizationCode::new(code))
     .request_async(&reqwest::Client::new())
     .await
     .context("failed in sending request request to authorization server")?;
@@ -221,7 +243,11 @@ pub(crate) async fn login_authorized(
     cookie.parse().context("failed to parse cookie")?,
   );
 
-  Ok((headers, Redirect::to(client_origin.as_str())))
+  let redirect_target = redirect
+    .or_else(|| normalize_redirect(query_redirect))
+    .unwrap_or_else(|| "/".to_string());
+
+  Ok((headers, Redirect::to(redirect_target.as_str())))
 }
 
 #[utoipa::path(
@@ -229,27 +255,34 @@ pub(crate) async fn login_authorized(
   path = "/auth/logout",
   tag = "auth",
   description = "Invalidate the active user session and redirect back to the client.",
+  params(
+    ("redirect" = String, Query, description = "URL to redirect to after logout completes.")
+  ),
   responses(
     (status = StatusCode::SEE_OTHER, description = "Redirect to the requested post-logout location."),
     (status = StatusCode::INTERNAL_SERVER_ERROR, description = "Failed to destroy the session.", body = String)
   )
 )]
 pub(crate) async fn logout(
+  Query(params): Query<RedirectParams>,
   AppState(store): AppState<RedisSessionStore>,
-  AppState(client_origin): AppState<ClientOrigin>,
   TypedHeader(cookies): TypedHeader<headers::Cookie>,
 ) -> Result<impl IntoResponse> {
-  let cookie = cookies
-    .get(COOKIE_NAME)
-    .context("unexpected error getting cookie name")?;
+  let redirect_target =
+    normalize_redirect(params.redirect).unwrap_or_else(|| "/".to_string());
+
+  let cookie = match cookies.get(COOKIE_NAME) {
+    Some(cookie) => cookie.to_string(),
+    None => return Ok(Redirect::to(redirect_target.as_str())),
+  };
 
   let session = match store
-    .load_session(cookie.to_string())
+    .load_session(cookie)
     .await
     .context("failed to load session")?
   {
     Some(s) => s,
-    None => return Ok(Redirect::to(client_origin.as_str())),
+    None => return Ok(Redirect::to(redirect_target.as_str())),
   };
 
   store
@@ -257,7 +290,7 @@ pub(crate) async fn logout(
     .await
     .context("failed to destroy session")?;
 
-  Ok(Redirect::to(client_origin.as_str()))
+  Ok(Redirect::to(redirect_target.as_str()))
 }
 
 #[utoipa::path(
@@ -278,7 +311,7 @@ async fn validate_csrf_token(
   auth_request: &AuthRequest,
   cookies: &headers::Cookie,
   store: &RedisSessionStore,
-) -> Result<()> {
+) -> Result<Option<String>> {
   let cookie = cookies
     .get(COOKIE_NAME)
     .context("unexpected error getting cookie name")?
@@ -298,6 +331,8 @@ async fn validate_csrf_token(
     .context("CSRF token not found in session")?
     .to_owned();
 
+  let redirect = normalize_redirect(session.get::<String>(REDIRECT_URL));
+
   store
     .destroy_session(session)
     .await
@@ -307,5 +342,34 @@ async fn validate_csrf_token(
     return Err(anyhow!("CSRF token mismatch").into());
   }
 
-  Ok(())
+  Ok(redirect)
+}
+
+fn normalize_redirect(target: Option<String>) -> Option<String> {
+  target.and_then(|value| {
+    let trimmed = value.trim();
+
+    if trimmed.is_empty() {
+      return None;
+    }
+
+    let uri = trimmed.parse::<http::Uri>().ok()?;
+
+    if let Some(scheme) = uri.scheme_str() {
+      return match scheme {
+        "http" | "https" => Some(uri.to_string()),
+        _ => None,
+      };
+    }
+
+    if uri.authority().is_some() {
+      return None;
+    }
+
+    if uri.path().starts_with('/') {
+      return Some(uri.to_string());
+    }
+
+    None
+  })
 }
