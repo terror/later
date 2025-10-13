@@ -25,15 +25,13 @@ use {
 use std::time::Duration;
 
 mod dom;
-mod product;
 mod error;
 mod extractor;
+mod product;
 mod scorer;
 
 pub use {
   error::Error,
+  extractor::{Extractor, ExtractorBuilder, ExtractorConfig, SanitizerOptions},
   product::Product,
-  extractor::{
-    Extractor, ExtractorBuilder, ExtractorConfig, SanitizerOptions,
-  },
 };
