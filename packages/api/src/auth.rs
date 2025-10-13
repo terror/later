@@ -175,12 +175,21 @@ pub(crate) async fn login_authorized(
       emails
         .iter()
         .find(|email| {
-          email.get("primary").and_then(Value::as_bool).unwrap_or(false)
-            && email.get("verified").and_then(Value::as_bool).unwrap_or(false)
+          email
+            .get("primary")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+            && email
+              .get("verified")
+              .and_then(Value::as_bool)
+              .unwrap_or(false)
         })
         .or_else(|| {
           emails.iter().find(|email| {
-            email.get("verified").and_then(Value::as_bool).unwrap_or(false)
+            email
+              .get("verified")
+              .and_then(Value::as_bool)
+              .unwrap_or(false)
           })
         })
     })
@@ -251,6 +260,20 @@ pub(crate) async fn logout(
     .context("failed to destroy session")?;
 
   Ok(Redirect::to("/"))
+}
+
+#[utoipa::path(
+  get,
+  path = "/auth/session",
+  tag = "auth",
+  description = "Retrieve the current authenticated user from the session.",
+  responses(
+    (status = StatusCode::OK, description = "Currently authenticated user.", body = model::User),
+    (status = StatusCode::SEE_OTHER, description = "Not authenticated, redirect to GitHub OAuth.")
+  )
+)]
+pub(crate) async fn session(user: user::User) -> impl IntoResponse {
+  axum::Json(user.0)
 }
 
 async fn validate_csrf_token(
