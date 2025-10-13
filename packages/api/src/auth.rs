@@ -27,12 +27,11 @@ pub(crate) struct AuthRedirect;
 
 impl IntoResponse for AuthRedirect {
   fn into_response(self) -> Response {
-    Redirect::temporary("/auth/github").into_response()
+    Redirect::temporary("/auth/login").into_response()
   }
 }
 
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 pub(crate) struct AuthRequest {
   code: String,
   state: String,
@@ -46,7 +45,7 @@ pub(crate) fn oauth_client() -> Result<ConfiguredOAuthClient> {
     .context("GITHUB_CLIENT_SECRET must be set")?;
 
   let redirect_url = env::var("GITHUB_REDIRECT_URL")
-    .unwrap_or_else(|_| "http://127.0.0.1:80/auth/authorized".to_string());
+    .context("GITHUB_REDIRECT_URL must be set")?;
 
   let auth_url =
     AuthUrl::new("https://github.com/login/oauth/authorize".to_string())
@@ -170,32 +169,29 @@ pub(crate) async fn login_authorized(
     .await
     .context("failed to deserialize emails response as JSON")?;
 
+  let is_verified = |email: &&Value| {
+    email
+      .get("verified")
+      .and_then(Value::as_bool)
+      .unwrap_or(false)
+  };
+
+  let is_primary = |email: &&Value| {
+    email
+      .get("primary")
+      .and_then(Value::as_bool)
+      .unwrap_or(false)
+  };
+
   let email = emails
     .as_array()
     .and_then(|emails| {
       emails
         .iter()
-        .find(|email| {
-          email
-            .get("primary")
-            .and_then(Value::as_bool)
-            .unwrap_or(false)
-            && email
-              .get("verified")
-              .and_then(Value::as_bool)
-              .unwrap_or(false)
-        })
-        .or_else(|| {
-          emails.iter().find(|email| {
-            email
-              .get("verified")
-              .and_then(Value::as_bool)
-              .unwrap_or(false)
-          })
-        })
+        .find(|e| is_primary(e) && is_verified(e))
+        .or_else(|| emails.iter().find(is_verified))
+        .and_then(|e| e.get("email")?.as_str())
     })
-    .and_then(|email| email.get("email"))
-    .and_then(Value::as_str)
     .ok_or_else(|| anyhow!("no verified email found for GitHub user"))?;
 
   let user = db
