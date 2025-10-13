@@ -22,6 +22,6 @@ tower = { version = "0.5.2", features = ["util"] }
 tower-http = { version = "0.6.6", features = ["cors", "fs", "trace", "request-id"] }
 tower_governor = { version = "0.8.0", features = ["axum"] }
 tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.20", features = ["env-filter", "json"] }
 utoipa = { version = "5.4.0", features = ["axum_extras"] }
 utoipa-scalar = { version = "0.3.0", features = ["axum"] }

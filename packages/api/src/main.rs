@@ -95,10 +95,17 @@ async fn main() {
     .with_file(true)
     .with_line_number(true);
 
-  tracing_subscriber::registry()
-    .with(env_filter)
-    .with(fmt_layer.pretty())
-    .init();
+  if env::var("ENV").unwrap_or_default() == "production" {
+    tracing_subscriber::registry()
+      .with(env_filter)
+      .with(fmt_layer.json())
+      .init();
+  } else {
+    tracing_subscriber::registry()
+      .with(env_filter)
+      .with(fmt_layer.pretty())
+      .init();
+  }
 
   if let Err(error) = Server::parse().run().await {
     error!("error: {error}");
