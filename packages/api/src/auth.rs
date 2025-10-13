@@ -131,6 +131,7 @@ pub(crate) async fn login_authorized(
   AppState(db): AppState<Db>,
   AppState(store): AppState<RedisSessionStore>,
   AppState(oauth_client): AppState<ConfiguredOAuthClient>,
+  AppState(client_origin): AppState<ClientOrigin>,
   TypedHeader(cookies): TypedHeader<headers::Cookie>,
 ) -> Result<impl IntoResponse> {
   validate_csrf_token(&query, &cookies, &store).await?;
@@ -224,7 +225,7 @@ pub(crate) async fn login_authorized(
     cookie.parse().context("failed to parse cookie")?,
   );
 
-  Ok((headers, Redirect::to("/")))
+  Ok((headers, Redirect::to(client_origin.as_str())))
 }
 
 #[utoipa::path(
@@ -239,6 +240,7 @@ pub(crate) async fn login_authorized(
 )]
 pub(crate) async fn logout(
   AppState(store): AppState<RedisSessionStore>,
+  AppState(client_origin): AppState<ClientOrigin>,
   TypedHeader(cookies): TypedHeader<headers::Cookie>,
 ) -> Result<impl IntoResponse> {
   let cookie = cookies
@@ -251,7 +253,7 @@ pub(crate) async fn logout(
     .context("failed to load session")?
   {
     Some(s) => s,
-    None => return Ok(Redirect::to("/")),
+    None => return Ok(Redirect::to(client_origin.as_str())),
   };
 
   store
@@ -259,7 +261,7 @@ pub(crate) async fn logout(
     .await
     .context("failed to destroy session")?;
 
-  Ok(Redirect::to("/"))
+  Ok(Redirect::to(client_origin.as_str()))
 }
 
 #[utoipa::path(
