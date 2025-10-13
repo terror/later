@@ -1,8 +1,4 @@
-use {
-  super::*,
-  model::{NewUser, User},
-  sqlx::migrate::MigrateDatabase,
-};
+use super::*;
 
 #[derive(Debug, Clone)]
 pub struct Db {
@@ -19,10 +15,6 @@ impl Db {
       .map_err(Error::Migrate)?;
 
     Ok(Self { pool })
-  }
-
-  pub fn pool(&self) -> &PgPool {
-    &self.pool
   }
 
   pub async fn upsert_user(&self, new_user: NewUser) -> Result<User> {
@@ -79,6 +71,7 @@ impl Db {
 mod tests {
   use {
     super::*,
+    sqlx::{Postgres, migrate::MigrateDatabase},
     std::{
       env,
       sync::atomic::{AtomicUsize, Ordering},
@@ -112,9 +105,14 @@ mod tests {
 
       let mut url =
         Url::parse(&base_url).expect("invalid DATABASE_URL for tests");
+
       url.set_path(&db_name);
 
       let database_url = url.to_string();
+
+      if !Postgres::database_exists(&database_url).await.unwrap() {
+        Postgres::create_database(&database_url).await.unwrap();
+      }
 
       let db = Db::connect(&database_url)
         .await
