@@ -24,8 +24,8 @@ impl Server {
   }
 
   async fn app() -> Result<Router> {
-    let database_url =
-      env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let database_url = env::var("DATABASE_URL")
+      .unwrap_or("postgresql://postgres:password@localhost:5432/later".into());
 
     info!("Connecting to database...");
 
@@ -35,8 +35,8 @@ impl Server {
 
     info!("Database connected successfully");
 
-    let redis_url = env::var("REDIS_URL")
-      .unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+    let redis_url =
+      env::var("REDIS_URL").unwrap_or("redis://127.0.0.1:6379".into());
 
     let session_store = RedisSessionStore::new(redis_url)
       .await
