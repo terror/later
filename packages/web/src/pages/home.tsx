@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { motion } from 'framer-motion';
-import { BookMarked } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -28,11 +27,9 @@ export default function HomePage() {
         transition={{ duration: 0.5 }}
       >
         <div className='mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8'>
-          <span className='flex items-center gap-2 text-xl font-semibold tracking-tight'>
-            {' '}
-            <BookMarked className='h-4 w-4' />
+          <Link to='/' className='text-xl font-semibold tracking-tight'>
             later
-          </span>
+          </Link>
           <div className='flex items-center gap-2 text-sm'>
             <Button variant='ghost' size='sm' asChild>
               <Link to='/sign-in'>Sign in</Link>
