@@ -1,36 +1,27 @@
 use super::*;
 
 pub(crate) static PUNCTUATIONS_REGEX: &str =
-  r"([、。，．！？]|\.[^A-Za-z0-9]|,[^0-9]|!|\?)";
+  r"([。．！？?!]|(?:^|[^A-Za-z0-9])[\.\,])";
 
-pub(crate) static UNLIKELY_CANDIDATES: &str = "combx|comment|community|disqus|extra|foot|header|menu\
+pub(crate) static UNLIKELY_CANDIDATES: &str = "(?i)(combx|comment|community|disqus|extra|foot|header|menu\
      |remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate\
      |pagination|pager|popup|tweet|twitter\
-     |ssba";
+     |ssba)";
 
-pub(crate) static LIKELY_CANDIDATES: &str = "and|article|body|column|main|shadow\
-                                              |content|hentry";
-pub(crate) static POSITIVE_CANDIDATES: &str = "article|body|content|entry|hentry|main|page\
-     |pagination|post|text|blog|story";
+pub(crate) static LIKELY_CANDIDATES: &str =
+  "(?i)(article|body|column|main|content|hentry)";
 
-pub(crate) static NEGATIVE_CANDIDATES: &str = "combx|comment|com|contact|foot|footer|footnote\
+pub(crate) static POSITIVE_CANDIDATES: &str = "(?i)(article|body|content|entry|hentry|main|page\
+     |pagination|post|text|blog|story)";
+
+pub(crate) static NEGATIVE_CANDIDATES: &str = "(?i)(combx|comment|com|contact|foot|footer|footnote\
      |masthead|media|meta|outbrain|promo|related\
      |scroll|shoutbox|sidebar|sponsor|shopping\
      |tags|tool|widget|form|textfield\
-     |uiScale|hidden";
+     |uiscale|hidden)";
 
-static BLOCK_CHILD_TAGS: [&str; 10] = [
-  "a",
-  "blockquote",
-  "dl",
-  "div",
-  "img",
-  "ol",
-  "p",
-  "pre",
-  "table",
-  "ul",
-];
+static BLOCK_CHILD_TAGS: [&str; 8] =
+  ["blockquote", "dl", "div", "ol", "p", "pre", "table", "ul"];
 
 lazy_static! {
   static ref PUNCTUATIONS: Regex = Regex::new(PUNCTUATIONS_REGEX).unwrap();
@@ -127,8 +118,9 @@ impl Scorer {
     }
 
     let mut useless_nodes = vec![];
-    let mut paragraph_nodes = vec![];
+    let mut paragraph_nodes: Vec<Option<Handle>> = vec![];
     let mut br_count = 0;
+    let mut saw_separator = false;
 
     for child in handle.children.borrow().iter() {
       if Self::preprocess_node(dom, child.clone(), title) {
@@ -144,18 +136,34 @@ impl Scorer {
           if "br" == tag_name.to_lowercase() {
             br_count += 1
           } else {
-            br_count = 0
+            if br_count >= 2 {
+              paragraph_nodes.push(None);
+              saw_separator = true;
+            }
+
+            br_count = 0;
           }
         }
         NodeData::Text { ref contents } => {
           let s = contents.borrow();
 
-          if br_count >= 2 && !s.trim().is_empty() {
-            paragraph_nodes.push(child.clone());
-            br_count = 0
+          if !s.trim().is_empty() {
+            paragraph_nodes.push(Some(child.clone()));
+          }
+
+          if br_count >= 2 {
+            paragraph_nodes.push(None);
+            saw_separator = true;
+            br_count = 0;
           }
         }
-        _ => (),
+        _ => {
+          if br_count >= 2 {
+            paragraph_nodes.push(None);
+            saw_separator = true;
+            br_count = 0;
+          }
+        }
       }
     }
 
@@ -163,18 +171,45 @@ impl Scorer {
       dom.remove_from_parent(node);
     }
 
-    for node in paragraph_nodes.iter() {
-      let name = QualName::new(None, ns!(html), LocalName::from("p"));
+    if saw_separator {
+      let mut segments: Vec<Vec<Handle>> = vec![];
+      let mut current_segment: Vec<Handle> = vec![];
 
-      let p = dom.create_element(name, vec![], ElementFlags::default());
+      for entry in paragraph_nodes.into_iter() {
+        match entry {
+          Some(handle) => current_segment.push(handle),
+          None => {
+            if !current_segment.is_empty() {
+              segments.push(current_segment);
+              current_segment = vec![];
+            }
+          }
+        }
+      }
 
-      dom.append_before_sibling(node, NodeOrText::AppendNode(p.clone()));
+      if !current_segment.is_empty() {
+        segments.push(current_segment);
+      }
 
-      dom.remove_from_parent(node);
+      for segment in segments {
+        if segment.is_empty() {
+          continue;
+        }
 
-      if let NodeData::Text { ref contents } = node.clone().data {
-        let text = contents.clone().into_inner().clone();
-        dom.append(&p, NodeOrText::AppendText(text))
+        let reference = segment[0].clone();
+        let name = QualName::new(None, ns!(html), LocalName::from("p"));
+        let p = dom.create_element(name, vec![], ElementFlags::default());
+
+        dom
+          .append_before_sibling(&reference, NodeOrText::AppendNode(p.clone()));
+
+        for node in segment {
+          if let NodeData::Text { ref contents } = node.clone().data {
+            let text = contents.clone().into_inner().clone();
+            dom.remove_from_parent(&node);
+            dom.append(&p, NodeOrText::AppendText(text));
+          }
+        }
       }
     }
 
@@ -255,7 +290,9 @@ impl Scorer {
           "form" | "table" | "ul" | "div" => {
             useless = self.is_useless(id, handle.clone(), candidates)
           }
-          "img" => useless = !Self::fix_img_path(handle.clone(), url),
+          "img" | "source" => {
+            useless = !Self::fix_img_path(handle.clone(), url)
+          }
           "a" => useless = !Self::fix_anchor_path(handle.clone(), url),
           _ => (),
         }
@@ -310,7 +347,7 @@ impl Scorer {
 
     match n {
       "p" => true,
-      "div" | "article" | "center" | "section" => {
+      "div" | "article" | "center" | "section" | "main" => {
         !dom::has_nodes(handle.clone(), &BLOCK_CHILD_TAGS)
       }
       _ => false,
@@ -392,7 +429,7 @@ impl Scorer {
 
     let p_count = p_nodes.len();
     let img_count = img_nodes.len();
-    let li_count = li_nodes.len() as i32 - 100;
+    let li_count = li_nodes.len() as i32;
     let input_count = input_nodes.len();
     let embed_count = embed_nodes.len();
     let link_density = Self::get_link_density(handle.clone());
@@ -411,7 +448,7 @@ impl Scorer {
       return true;
     }
 
-    if content_length < 25 && (img_count == 0 || img_count > 2) {
+    if content_length < 25 && img_count == 0 {
       return true;
     }
 
@@ -427,41 +464,64 @@ impl Scorer {
   }
 
   fn fix_img_path(handle: Handle, url: &Url) -> bool {
-    let src = dom::get_attr("src", handle.clone());
+    let mut has_resource = false;
 
-    let s = match src {
-      Some(src) => src,
-      None => return false,
-    };
+    if let Some(src) = dom::get_attr("src", handle.clone()) {
+      if let Some(resolved) = Self::resolve_url(&src, url) {
+        dom::set_attr("src", &resolved, handle.clone());
+      }
 
-    if !s.starts_with("//")
-      && !s.starts_with("http://")
-      && !s.starts_with("https://")
-      && let Ok(new_url) = url.join(&s)
-    {
-      dom::set_attr("src", new_url.as_str(), handle)
+      has_resource = true;
     }
 
-    true
+    if let Some(srcset) = dom::get_attr("srcset", handle.clone()) {
+      let rewritten = srcset
+        .split(',')
+        .filter_map(|entry| {
+          let trimmed = entry.trim();
+
+          if trimmed.is_empty() {
+            return None;
+          }
+
+          let mut parts = trimmed.split_whitespace();
+          let url_part = parts.next()?;
+          let descriptor = parts.collect::<Vec<_>>().join(" ");
+
+          let resolved = Self::resolve_url(url_part, url)?;
+
+          if descriptor.is_empty() {
+            Some(resolved)
+          } else {
+            Some(format!("{} {}", resolved, descriptor))
+          }
+        })
+        .collect::<Vec<_>>();
+
+      if !rewritten.is_empty() {
+        dom::set_attr("srcset", &rewritten.join(", "), handle.clone());
+        has_resource = true;
+      }
+    }
+
+    has_resource
   }
 
   fn fix_anchor_path(handle: Handle, url: &Url) -> bool {
-    let src = dom::get_attr("href", handle.clone());
-
-    let s = match src {
-      Some(src) => src,
-      None => return false,
-    };
-
-    if !s.starts_with("//")
-      && !s.starts_with("http://")
-      && !s.starts_with("https://")
-      && let Ok(new_url) = url.join(&s)
-    {
-      dom::set_attr("href", new_url.as_str(), handle)
+    if dom::get_attr("href", handle.clone()).is_none() {
+      return dom::get_attr("name", handle.clone()).is_some()
+        || dom::get_attr("id", handle).is_some();
     }
 
-    true
+    if let Some(href) = dom::get_attr("href", handle.clone()) {
+      if let Some(resolved) = Self::resolve_url(&href, url) {
+        dom::set_attr("href", &resolved, handle);
+      }
+
+      return true;
+    }
+
+    false
   }
 
   fn get_link_density(handle: Handle) -> f32 {
@@ -492,11 +552,28 @@ impl Scorer {
       "div" => 5.0,
       "blockquote" => 3.0,
       "form" => -3.0,
-      "th" => 5.0,
       _ => 0.0,
     };
 
     score + Self::get_class_weight(handle)
+  }
+
+  fn resolve_url(raw: &str, base: &Url) -> Option<String> {
+    let trimmed = raw.trim();
+
+    if trimmed.is_empty() {
+      return None;
+    }
+
+    if trimmed.starts_with("http://") || trimmed.starts_with("https://") {
+      return Some(trimmed.to_string());
+    }
+
+    if trimmed.starts_with("//") {
+      return Some(format!("{}:{}", base.scheme(), trimmed));
+    }
+
+    base.join(trimmed).ok().map(|joined| joined.to_string())
   }
 
   fn get_class_weight(handle: Handle) -> f32 {
@@ -624,6 +701,86 @@ mod tests {
       dom::get_attr("src", image).as_deref(),
       Some("https://example.com/image.png")
     );
+  }
+
+  #[test]
+  fn clean_resolves_protocol_relative_and_srcset() {
+    let mut dom = parse_html(
+      "<div><img src=\"//cdn.example.com/image.png\" srcset=\"/image-1x.png 1x, //cdn.example.com/image-2x.png 2x\"></div>",
+    );
+
+    let scorer = Scorer::new(1, SanitizerOptions::default());
+    let url = Url::parse("https://example.com/post/").unwrap();
+
+    let div = find_element(dom.document.clone(), "div").unwrap();
+    let mut candidates = BTreeMap::new();
+
+    candidates.insert(
+      "/".to_string(),
+      Candidate {
+        node: div.clone(),
+        score: Cell::new(0.0),
+      },
+    );
+
+    scorer.clean(&mut dom, Path::new("/"), div.clone(), &url, &candidates);
+
+    let mut image = None;
+
+    for child in div.children.borrow().iter() {
+      if let NodeData::Element { ref name, .. } = child.data {
+        if name.local.as_ref() == "img" {
+          image = Some(child.clone());
+        }
+      }
+    }
+
+    let image = image.expect("missing image node");
+
+    assert_eq!(
+      dom::get_attr("src", image.clone()).as_deref(),
+      Some("https://cdn.example.com/image.png")
+    );
+
+    assert_eq!(
+      dom::get_attr("srcset", image).as_deref(),
+      Some(
+        "https://example.com/image-1x.png 1x, https://cdn.example.com/image-2x.png 2x"
+      )
+    );
+  }
+
+  #[test]
+  fn clean_preserves_named_anchor_without_href() {
+    let mut dom = parse_html("<div><a name=\"section\">Section</a></div>");
+
+    let scorer = Scorer::new(1, SanitizerOptions::default());
+    let url = Url::parse("https://example.com/post/").unwrap();
+
+    let div = find_element(dom.document.clone(), "div").unwrap();
+    let mut candidates = BTreeMap::new();
+
+    candidates.insert(
+      "/".to_string(),
+      Candidate {
+        node: div.clone(),
+        score: Cell::new(0.0),
+      },
+    );
+
+    scorer.clean(&mut dom, Path::new("/"), div.clone(), &url, &candidates);
+
+    let mut anchor = None;
+
+    for child in div.children.borrow().iter() {
+      if let NodeData::Element { ref name, .. } = child.data {
+        if name.local.as_ref() == "a" {
+          anchor = Some(child.clone());
+        }
+      }
+    }
+
+    assert!(anchor.is_some(), "expected anchor to be preserved");
   }
 
   #[test]
