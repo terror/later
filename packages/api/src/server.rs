@@ -29,9 +29,7 @@ impl Server {
 
     info!("Connecting to database...");
 
-    let pool = PgPool::connect(&database_url).await?;
-
-    sqlx::migrate!("./migrations").run(&pool).await?;
+    let db = Db::connect(&database_url).await?;
 
     info!("Database connected successfully");
 
@@ -45,7 +43,7 @@ impl Server {
     let oauth_client = auth::oauth_client()?;
 
     let state = State {
-      _db: pool,
+      db,
       oauth_client,
       session_store,
     };

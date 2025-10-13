@@ -16,6 +16,7 @@ use {
     TypedHeader, headers, typed_header::TypedHeaderRejectionReason,
   },
   clap::Parser,
+  db::Db,
   documentation::Documentation,
   dotenv::dotenv,
   error::Error,
@@ -35,7 +36,6 @@ use {
   redis_session_store::RedisSessionStore,
   serde::{Deserialize, Serialize},
   server::Server,
-  sqlx::PgPool,
   state::State,
   std::{
     backtrace::BacktraceStatus,
