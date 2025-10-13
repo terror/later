@@ -1,8 +1,30 @@
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/use-auth';
+import { getLoginUrl } from '@/lib/api';
 import { motion } from 'framer-motion';
 import { Github } from 'lucide-react';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function SignInPage() {
+  const { user, loading } = useAuth();
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/');
+    }
+  }, [user, loading, navigate]);
+
+  const handleSignIn = () => {
+    window.location.href = getLoginUrl();
+  };
+
+  if (loading) {
+    return null;
+  }
+
   return (
     <div className='bg-background text-foreground flex min-h-screen items-center justify-center px-4'>
       <motion.div
@@ -15,7 +37,11 @@ export default function SignInPage() {
         <p className='text-muted-foreground mt-2 text-sm'>
           Use one of the providers below to continue.
         </p>
-        <Button size='lg' className='mt-6 w-full justify-center px-8 text-base'>
+        <Button
+          size='lg'
+          className='mt-6 w-full cursor-pointer justify-center px-8 text-base'
+          onClick={handleSignIn}
+        >
           <Github className='size-5' aria-hidden />
           Sign in with GitHub
         </Button>

@@ -37,6 +37,7 @@ impl Modify for GithubOAuthSecurity {
     auth::login,
     auth::login_authorized,
     auth::logout,
+    auth::session,
   ),
   components(
     schemas(

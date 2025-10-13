@@ -40,18 +40,22 @@ impl Server {
       .await
       .context("failed to create Redis session store")?;
 
+    let client_origin = env::var("CLIENT_ORIGIN")
+      .unwrap_or_else(|_| "http://localhost:5173".into());
+
     let oauth_client = auth::oauth_client()?;
 
     let state = State {
       db,
       oauth_client,
       session_store,
+      client_origin: ClientOrigin::new(client_origin),
     };
 
     let governor_config = Arc::new(
       GovernorConfigBuilder::default()
-        .per_second(5)
-        .burst_size(10)
+        .per_second(10)
+        .burst_size(100)
         .use_headers()
         .finish()
         .ok_or(anyhow!("failed to build governor config"))?,
@@ -61,6 +65,7 @@ impl Server {
       .route("/auth/authorized", get(auth::login_authorized))
       .route("/auth/login", get(auth::login))
       .route("/auth/logout", get(auth::logout))
+      .route("/auth/session", get(auth::session))
       .merge(Scalar::with_url("/", Documentation::openapi()));
 
     let trace_layer = TraceLayer::new_for_http()

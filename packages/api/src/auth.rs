@@ -131,6 +131,7 @@ pub(crate) async fn login_authorized(
   AppState(db): AppState<Db>,
   AppState(store): AppState<RedisSessionStore>,
   AppState(oauth_client): AppState<ConfiguredOAuthClient>,
+  AppState(client_origin): AppState<ClientOrigin>,
   TypedHeader(cookies): TypedHeader<headers::Cookie>,
 ) -> Result<impl IntoResponse> {
   validate_csrf_token(&query, &cookies, &store).await?;
@@ -156,12 +157,46 @@ pub(crate) async fn login_authorized(
     .await
     .context("failed to deserialize response as JSON")?;
 
-  let email = user
-    .get("email")
-    .and_then(Value::as_str)
-    .ok_or_else(|| anyhow!("GitHub user email not provided"))?;
-
   let name = user.get("name").and_then(Value::as_str);
+
+  let emails = client
+    .get("https://api.github.com/user/emails")
+    .bearer_auth(&access_token)
+    .header("User-Agent", "Later-App")
+    .send()
+    .await
+    .context("failed to fetch user emails from GitHub API")?
+    .json::<Value>()
+    .await
+    .context("failed to deserialize emails response as JSON")?;
+
+  let email = emails
+    .as_array()
+    .and_then(|emails| {
+      emails
+        .iter()
+        .find(|email| {
+          email
+            .get("primary")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+            && email
+              .get("verified")
+              .and_then(Value::as_bool)
+              .unwrap_or(false)
+        })
+        .or_else(|| {
+          emails.iter().find(|email| {
+            email
+              .get("verified")
+              .and_then(Value::as_bool)
+              .unwrap_or(false)
+          })
+        })
+    })
+    .and_then(|email| email.get("email"))
+    .and_then(Value::as_str)
+    .ok_or_else(|| anyhow!("no verified email found for GitHub user"))?;
 
   let user = db
     .upsert_user(email, name)
@@ -190,7 +225,7 @@ pub(crate) async fn login_authorized(
     cookie.parse().context("failed to parse cookie")?,
   );
 
-  Ok((headers, Redirect::to("/")))
+  Ok((headers, Redirect::to(client_origin.as_str())))
 }
 
 #[utoipa::path(
@@ -205,6 +240,7 @@ pub(crate) async fn login_authorized(
 )]
 pub(crate) async fn logout(
   AppState(store): AppState<RedisSessionStore>,
+  AppState(client_origin): AppState<ClientOrigin>,
   TypedHeader(cookies): TypedHeader<headers::Cookie>,
 ) -> Result<impl IntoResponse> {
   let cookie = cookies
@@ -217,7 +253,7 @@ pub(crate) async fn logout(
     .context("failed to load session")?
   {
     Some(s) => s,
-    None => return Ok(Redirect::to("/")),
+    None => return Ok(Redirect::to(client_origin.as_str())),
   };
 
   store
@@ -225,7 +261,21 @@ pub(crate) async fn logout(
     .await
     .context("failed to destroy session")?;
 
-  Ok(Redirect::to("/"))
+  Ok(Redirect::to(client_origin.as_str()))
+}
+
+#[utoipa::path(
+  get,
+  path = "/auth/session",
+  tag = "auth",
+  description = "Retrieve the current authenticated user from the session.",
+  responses(
+    (status = StatusCode::OK, description = "Currently authenticated user.", body = model::User),
+    (status = StatusCode::SEE_OTHER, description = "Not authenticated, redirect to GitHub OAuth.")
+  )
+)]
+pub(crate) async fn session(User(user): User) -> impl IntoResponse {
+  Json(user)
 }
 
 async fn validate_csrf_token(
