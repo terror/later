@@ -48,7 +48,7 @@ jobs:
         run: bun install
 
       - name: Format
-        run: bun run format-check
+        run: bun run fmt-check
 
       - name: Lint
         working-directory: packages/web
