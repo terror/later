@@ -18,7 +18,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { getLogoutUrl } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { Settings } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 type TabKey = 'inbox' | 'archive';
 
@@ -63,8 +63,24 @@ export default function DashboardPage() {
 
   const articles = articlesByTab[activeTab];
 
-  const selectedArticle =
-    articles.find((article) => article.id === selectedArticleId) ?? null;
+  const effectiveSelectedArticleId = useMemo(() => {
+    if (
+      selectedArticleId !== null &&
+      articles.some((article) => article.id === selectedArticleId)
+    ) {
+      return selectedArticleId;
+    }
+
+    return articles[0]?.id ?? null;
+  }, [articles, selectedArticleId]);
+
+  const selectedArticle = useMemo(() => {
+    return (
+      articles.find(
+        (article) => article.id === effectiveSelectedArticleId
+      ) ?? null
+    );
+  }, [articles, effectiveSelectedArticleId]);
 
   const displayName =
     user?.name && user.name.trim().length > 0 ? user.name : 'Taylor Dawson';
@@ -85,15 +101,6 @@ export default function DashboardPage() {
 
     return letters || fallback;
   }, [displayName]);
-
-  useEffect(() => {
-    const firstArticleId = articlesByTab[activeTab][0]?.id ?? null;
-
-    setSelectedArticleId((current) =>
-      current === firstArticleId ? current : firstArticleId
-    );
-  }, [activeTab, articlesByTab]);
-
   const handleLogout = () => {
     window.location.href = getLogoutUrl();
   };
