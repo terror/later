@@ -1,6 +1,6 @@
+import { AuthContext } from '@/contexts/auth-context';
 import { getSession } from '@/lib/api';
 import type { User } from '@/lib/types';
-import { AuthContext } from '@/contexts/auth-context';
 import { useEffect, useState } from 'react';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

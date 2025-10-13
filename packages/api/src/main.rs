@@ -3,7 +3,7 @@ use {
   async_session::{Session, SessionStore, async_trait, serde_json},
   auth::{AuthRedirect, COOKIE_NAME},
   axum::{
-    RequestPartsExt, Router,
+    Json, RequestPartsExt, Router,
     body::Body,
     extract::{
       FromRef, FromRequestParts, OptionalFromRequestParts, Query,
@@ -63,6 +63,7 @@ use {
   },
   tracing::{Level, error, info, info_span},
   tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt},
+  user::User,
   utoipa::{
     Modify, OpenApi,
     openapi::{
