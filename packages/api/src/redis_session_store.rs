@@ -167,9 +167,22 @@ impl SessionStore for RedisSessionStore {
 
 #[cfg(test)]
 mod tests {
-  use {super::*, std::time::Duration, tokio::time::sleep};
+  use {
+    super::*,
+    std::{
+      sync::atomic::{AtomicUsize, Ordering},
+      time::Duration,
+    },
+    tokio::time::sleep,
+  };
 
-  async fn store_with_prefix(prefix: &str) -> RedisSessionStore {
+  fn unique_prefix() -> String {
+    static COUNTER: AtomicUsize = AtomicUsize::new(0);
+    let id = COUNTER.fetch_add(1, Ordering::Relaxed);
+    format!("session:test:{id}:")
+  }
+
+  async fn store_with_prefix(prefix: impl Into<String>) -> RedisSessionStore {
     let store =
       RedisSessionStore::new_with_prefix("redis://127.0.0.1:6379", prefix)
         .await
@@ -181,7 +194,7 @@ mod tests {
   }
 
   async fn store() -> RedisSessionStore {
-    store_with_prefix("session:").await
+    store_with_prefix(unique_prefix()).await
   }
 
   #[tokio::test]
