@@ -105,10 +105,12 @@ dependencies = [
  "async-session",
  "axum",
  "axum-extra",
+ "chrono",
  "clap",
  "db",
  "dotenv",
  "http",
+ "model",
  "oauth2",
  "redis",
  "reqwest",
@@ -121,6 +123,7 @@ dependencies = [
  "tracing-subscriber",
  "utoipa",
  "utoipa-scalar",
+ "uuid",
 ]
 
 [[package]]
@@ -617,8 +620,11 @@ dependencies = [
 name = "db"
 version = "0.0.0"
 dependencies = [
+ "model",
  "sqlx",
  "thiserror 2.0.17",
+ "tokio",
+ "url",
 ]
 
 [[package]]
@@ -1558,6 +1564,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "model"
+version = "0.0.0"
+dependencies = [
+ "chrono",
+ "serde",
+ "utoipa",
+ "uuid",
+]
+
+[[package]]
 name = "native-tls"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2489,6 +2505,7 @@ checksum = "ee6798b1838b6a0f69c007c133b8df5866302197e404e8b6ee8ed3e3a5e68dc6"
 dependencies = [
  "base64 0.22.1",
  "bytes",
+ "chrono",
  "crc",
  "crossbeam-queue",
  "either",
@@ -2514,6 +2531,7 @@ dependencies = [
  "tokio-stream",
  "tracing",
  "url",
+ "uuid",
  "webpki-roots 0.26.11",
 ]
 
@@ -2566,6 +2584,7 @@ dependencies = [
  "bitflags",
  "byteorder",
  "bytes",
+ "chrono",
  "crc",
  "digest 0.10.7",
  "dotenvy",
@@ -2594,6 +2613,7 @@ dependencies = [
  "stringprep",
  "thiserror 2.0.17",
  "tracing",
+ "uuid",
  "whoami",
 ]
 
@@ -2607,6 +2627,7 @@ dependencies = [
  "base64 0.22.1",
  "bitflags",
  "byteorder",
+ "chrono",
  "crc",
  "dotenvy",
  "etcetera",
@@ -2631,6 +2652,7 @@ dependencies = [
  "stringprep",
  "thiserror 2.0.17",
  "tracing",
+ "uuid",
  "whoami",
 ]
 
@@ -2641,6 +2663,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2d12fe70b2c1b4401038055f90f151b78208de1f9f89a7dbfd41587a10c3eea"
 dependencies = [
  "atoi",
+ "chrono",
  "flume",
  "futures-channel",
  "futures-core",
@@ -2656,6 +2679,7 @@ dependencies = [
  "thiserror 2.0.17",
  "tracing",
  "url",
+ "uuid",
 ]
 
 [[package]]
@@ -3177,6 +3201,7 @@ dependencies = [
  "quote",
  "regex",
  "syn",
+ "uuid",
 ]
 
 [[package]]
@@ -3199,6 +3224,7 @@ checksum = "2f87b8aa10b915a06587d0dec516c282ff295b475d94abf425d62b57710070a2"
 dependencies = [
  "getrandom 0.3.3",
  "js-sys",
+ "serde",
  "wasm-bindgen",
 ]
 

@@ -128,6 +128,7 @@ pub async fn login(
 )]
 pub(crate) async fn login_authorized(
   Query(query): Query<AuthRequest>,
+  AppState(db): AppState<Db>,
   AppState(store): AppState<RedisSessionStore>,
   AppState(oauth_client): AppState<ConfiguredOAuthClient>,
   TypedHeader(cookies): TypedHeader<headers::Cookie>,
@@ -142,9 +143,11 @@ pub(crate) async fn login_authorized(
 
   let client = reqwest::Client::new();
 
-  let user_data: User = client
+  let access_token = token.access_token().secret().to_owned();
+
+  let github_user = client
     .get("https://api.github.com/user")
-    .bearer_auth(token.access_token().secret())
+    .bearer_auth(&access_token)
     .header("User-Agent", "Later-App")
     .send()
     .await
@@ -153,10 +156,21 @@ pub(crate) async fn login_authorized(
     .await
     .context("failed to deserialize response as JSON")?;
 
+  let fallback_email = if github_user.email.is_some() {
+    None
+  } else {
+    fetch_primary_email(&client, &access_token).await?
+  };
+
+  let persisted_user = db
+    .upsert_user(github_user.into_new_user(fallback_email)?)
+    .await
+    .context("failed to persist authenticated user")?;
+
   let mut session = Session::new();
 
   session
-    .insert("user", &user_data)
+    .insert("user", &persisted_user)
     .context("failed in inserting serialized value into session")?;
 
   let cookie = store
@@ -211,6 +225,36 @@ pub(crate) async fn logout(
     .context("failed to destroy session")?;
 
   Ok(Redirect::to("/"))
+}
+
+async fn fetch_primary_email(
+  client: &reqwest::Client,
+  access_token: &str,
+) -> Result<Option<String>> {
+  let response = client
+    .get("https://api.github.com/user/emails")
+    .bearer_auth(access_token)
+    .header("User-Agent", "Later-App")
+    .send()
+    .await
+    .context("failed to send request for GitHub email addresses")?;
+
+  if !response.status().is_success() {
+    return Ok(None);
+  }
+
+  let emails = response
+    .json::<Vec<Email>>()
+    .await
+    .context("failed to deserialize GitHub email response")?;
+
+  let primary = emails
+    .iter()
+    .find(|email| email.primary && email.verified)
+    .or_else(|| emails.iter().find(|email| email.verified))
+    .or_else(|| emails.first());
+
+  Ok(primary.map(|email| email.email.clone()))
 }
 
 async fn validate_csrf_token(

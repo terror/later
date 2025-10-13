@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize)]
 pub(crate) struct User {
   pub(crate) id: u64,
   pub(crate) avatar_url: Option<String>,
@@ -9,7 +9,51 @@ pub(crate) struct User {
   pub(crate) name: Option<String>,
 }
 
-impl<S> OptionalFromRequestParts<S> for User
+impl User {
+  pub(crate) fn into_new_user(
+    self,
+    email_override: Option<String>,
+  ) -> Result<model::NewUser> {
+    let email = self.email.or(email_override);
+
+    let github_id = i64::try_from(self.id)
+      .context("GitHub user id exceeds supported range for BIGINT")?;
+
+    Ok(model::NewUser {
+      github_id,
+      email,
+      username: self.login,
+      name: self.name,
+      avatar_url: self.avatar_url,
+    })
+  }
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct Email {
+  pub(crate) email: String,
+  pub(crate) primary: bool,
+  pub(crate) verified: bool,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct SessionUser(pub model::User);
+
+impl Deref for SessionUser {
+  type Target = model::User;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl From<SessionUser> for model::User {
+  fn from(value: SessionUser) -> Self {
+    value.0
+  }
+}
+
+impl<S> OptionalFromRequestParts<S> for SessionUser
 where
   RedisSessionStore: FromRef<S>,
   S: Send + Sync,
@@ -20,7 +64,8 @@ where
     parts: &mut Parts,
     state: &S,
   ) -> Result<Option<Self>, Self::Rejection> {
-    match <User as FromRequestParts<S>>::from_request_parts(parts, state).await
+    match <SessionUser as FromRequestParts<S>>::from_request_parts(parts, state)
+      .await
     {
       Ok(res) => Ok(Some(res)),
       Err(_) => Ok(None),
@@ -28,7 +73,7 @@ where
   }
 }
 
-impl<S> FromRequestParts<S> for User
+impl<S> FromRequestParts<S> for SessionUser
 where
   RedisSessionStore: FromRef<S>,
   S: Send + Sync,
@@ -60,8 +105,8 @@ where
       .unwrap()
       .ok_or(AuthRedirect)?;
 
-    let user = session.get::<User>("user").ok_or(AuthRedirect)?;
+    let user = session.get::<model::User>("user").ok_or(AuthRedirect)?;
 
-    Ok(user)
+    Ok(SessionUser(user))
   }
 }
