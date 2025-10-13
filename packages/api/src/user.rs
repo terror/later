@@ -2,42 +2,27 @@ use super::*;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct User {
-  pub(crate) id: u64,
-  pub(crate) avatar_url: Option<String>,
   pub(crate) email: Option<String>,
-  pub(crate) login: String,
   pub(crate) name: Option<String>,
 }
 
-impl User {
-  pub(crate) fn into_new_user(
-    self,
-    email_override: Option<String>,
-  ) -> Result<model::NewUser> {
-    let email = self.email.or(email_override);
+impl TryInto<NewUser> for User {
+  type Error = Error;
 
-    let github_id = i64::try_from(self.id)
-      .context("GitHub user id exceeds supported range for BIGINT")?;
+  fn try_into(self) -> Result<NewUser> {
+    let email = self
+      .email
+      .ok_or_else(|| anyhow!("GitHub user email not provided"))?;
 
-    Ok(model::NewUser {
-      github_id,
+    Ok(NewUser {
       email,
-      username: self.login,
       name: self.name,
-      avatar_url: self.avatar_url,
     })
   }
 }
 
-#[derive(Debug, Deserialize)]
-pub(crate) struct Email {
-  pub(crate) email: String,
-  pub(crate) primary: bool,
-  pub(crate) verified: bool,
-}
-
 #[derive(Debug, Clone)]
-pub(crate) struct SessionUser(pub model::User);
+pub(crate) struct SessionUser(pub(crate) model::User);
 
 impl Deref for SessionUser {
   type Target = model::User;

@@ -156,21 +156,15 @@ pub(crate) async fn login_authorized(
     .await
     .context("failed to deserialize response as JSON")?;
 
-  let fallback_email = if github_user.email.is_some() {
-    None
-  } else {
-    fetch_primary_email(&client, &access_token).await?
-  };
-
-  let persisted_user = db
-    .upsert_user(github_user.into_new_user(fallback_email)?)
+  let user = db
+    .upsert_user(github_user.try_into()?)
     .await
     .context("failed to persist authenticated user")?;
 
   let mut session = Session::new();
 
   session
-    .insert("user", &persisted_user)
+    .insert("user", &user)
     .context("failed in inserting serialized value into session")?;
 
   let cookie = store
@@ -225,36 +219,6 @@ pub(crate) async fn logout(
     .context("failed to destroy session")?;
 
   Ok(Redirect::to("/"))
-}
-
-async fn fetch_primary_email(
-  client: &reqwest::Client,
-  access_token: &str,
-) -> Result<Option<String>> {
-  let response = client
-    .get("https://api.github.com/user/emails")
-    .bearer_auth(access_token)
-    .header("User-Agent", "Later-App")
-    .send()
-    .await
-    .context("failed to send request for GitHub email addresses")?;
-
-  if !response.status().is_success() {
-    return Ok(None);
-  }
-
-  let emails = response
-    .json::<Vec<Email>>()
-    .await
-    .context("failed to deserialize GitHub email response")?;
-
-  let primary = emails
-    .iter()
-    .find(|email| email.primary && email.verified)
-    .or_else(|| emails.iter().find(|email| email.verified))
-    .or_else(|| emails.first());
-
-  Ok(primary.map(|email| email.email.clone()))
 }
 
 async fn validate_csrf_token(

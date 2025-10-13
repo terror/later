@@ -18,40 +18,26 @@ impl Db {
   }
 
   pub async fn upsert_user(&self, new_user: NewUser) -> Result<User> {
-    let NewUser {
-      github_id,
-      email,
-      username,
-      name,
-      avatar_url,
-    } = new_user;
+    let NewUser { email, name } = new_user;
 
     let user = sqlx::query_as::<_, User>(
       r#"
-      INSERT INTO users (github_id, email, username, name, avatar_url)
-      VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (github_id) DO UPDATE
+      INSERT INTO users (email, name)
+      VALUES ($1, $2)
+      ON CONFLICT (email) DO UPDATE
       SET email = EXCLUDED.email,
-          username = EXCLUDED.username,
           name = EXCLUDED.name,
-          avatar_url = EXCLUDED.avatar_url,
           updated_at = NOW()
       RETURNING
         user_id,
-        github_id,
         email,
-        username,
         name,
-        avatar_url,
         created_at,
         updated_at
       "#,
     )
-    .bind(github_id)
     .bind(email)
-    .bind(username)
     .bind(name)
-    .bind(avatar_url)
     .fetch_one(&self.pool)
     .await?;
 
@@ -129,11 +115,8 @@ mod tests {
     assert_eq!(db.user_count().await.unwrap(), 0);
 
     db.upsert_user(NewUser {
-      github_id: 42,
-      email: Some("test@example.com".into()),
-      username: "test-user".into(),
+      email: "test@example.com".into(),
       name: Some("Test User".into()),
-      avatar_url: Some("https://example.com/avatar.png".into()),
     })
     .await
     .unwrap();
