@@ -36,6 +36,7 @@ use {
   },
   redis_session_store::RedisSessionStore,
   serde::Deserialize,
+  serde_json::Value,
   server::Server,
   state::State,
   std::{
@@ -63,7 +64,6 @@ use {
   },
   tracing::{Level, error, info, info_span},
   tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt},
-  user::User,
   utoipa::{
     Modify, OpenApi,
     openapi::{

@@ -1,30 +1,9 @@
 use super::*;
 
-#[derive(Debug, Deserialize)]
-pub(crate) struct User {
-  pub(crate) email: Option<String>,
-  pub(crate) name: Option<String>,
-}
-
-impl TryInto<NewUser> for User {
-  type Error = Error;
-
-  fn try_into(self) -> Result<NewUser> {
-    let email = self
-      .email
-      .ok_or_else(|| anyhow!("GitHub user email not provided"))?;
-
-    Ok(NewUser {
-      email,
-      name: self.name,
-    })
-  }
-}
-
 #[derive(Debug, Clone)]
-pub(crate) struct SessionUser(pub(crate) model::User);
+pub(crate) struct User(pub(crate) model::User);
 
-impl Deref for SessionUser {
+impl Deref for User {
   type Target = model::User;
 
   fn deref(&self) -> &Self::Target {
@@ -32,13 +11,13 @@ impl Deref for SessionUser {
   }
 }
 
-impl From<SessionUser> for model::User {
-  fn from(value: SessionUser) -> Self {
+impl From<User> for model::User {
+  fn from(value: User) -> Self {
     value.0
   }
 }
 
-impl<S> OptionalFromRequestParts<S> for SessionUser
+impl<S> OptionalFromRequestParts<S> for User
 where
   RedisSessionStore: FromRef<S>,
   S: Send + Sync,
@@ -49,8 +28,7 @@ where
     parts: &mut Parts,
     state: &S,
   ) -> Result<Option<Self>, Self::Rejection> {
-    match <SessionUser as FromRequestParts<S>>::from_request_parts(parts, state)
-      .await
+    match <User as FromRequestParts<S>>::from_request_parts(parts, state).await
     {
       Ok(res) => Ok(Some(res)),
       Err(_) => Ok(None),
@@ -58,7 +36,7 @@ where
   }
 }
 
-impl<S> FromRequestParts<S> for SessionUser
+impl<S> FromRequestParts<S> for User
 where
   RedisSessionStore: FromRef<S>,
   S: Send + Sync,
@@ -92,6 +70,6 @@ where
 
     let user = session.get::<model::User>("user").ok_or(AuthRedirect)?;
 
-    Ok(SessionUser(user))
+    Ok(User(user))
   }
 }

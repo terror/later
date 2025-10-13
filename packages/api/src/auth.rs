@@ -145,19 +145,30 @@ pub(crate) async fn login_authorized(
 
   let access_token = token.access_token().secret().to_owned();
 
-  let github_user = client
+  let user = client
     .get("https://api.github.com/user")
     .bearer_auth(&access_token)
     .header("User-Agent", "Later-App")
     .send()
     .await
     .context("failed in sending request to GitHub API")?
-    .json::<User>()
+    .json::<Value>()
     .await
     .context("failed to deserialize response as JSON")?;
 
+  let email = user
+    .get("email")
+    .and_then(Value::as_str)
+    .ok_or_else(|| anyhow!("GitHub user email not provided"))?
+    .to_owned();
+
+  let name = user
+    .get("name")
+    .and_then(Value::as_str)
+    .map(|name| name.to_owned());
+
   let user = db
-    .upsert_user(github_user.try_into()?)
+    .upsert_user(NewUser { email, name })
     .await
     .context("failed to persist authenticated user")?;
 
