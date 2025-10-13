@@ -140,6 +140,7 @@ impl Scorer {
       match c.data {
         NodeData::Element { ref name, .. } => {
           let tag_name = name.local.as_ref();
+
           if "br" == tag_name.to_lowercase() {
             br_count += 1
           } else {
@@ -148,6 +149,7 @@ impl Scorer {
         }
         NodeData::Text { ref contents } => {
           let s = contents.borrow();
+
           if br_count >= 2 && !s.trim().is_empty() {
             paragraph_nodes.push(child.clone());
             br_count = 0
@@ -280,6 +282,7 @@ impl Scorer {
 
     for (i, child) in handle.children.borrow().iter().enumerate() {
       let pid = id.join(i.to_string());
+
       if self.clean_node(dom, pid.as_path(), child.clone(), url, candidates) {
         useless_nodes.push(child.clone());
       }
@@ -516,5 +519,139 @@ impl Scorer {
     };
 
     weight
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use {
+    super::*,
+    html5ever::{parse_document, tendril::stream::TendrilSink},
+    std::io::Cursor,
+  };
+
+  fn parse_html(html: &str) -> RcDom {
+    let mut cursor = Cursor::new(html.as_bytes());
+
+    parse_document(RcDom::default(), Default::default())
+      .from_utf8()
+      .read_from(&mut cursor)
+      .expect("failed to parse fixture")
+  }
+
+  fn find_element(handle: Handle, tag: &str) -> Option<Handle> {
+    for child in handle.children.borrow().iter() {
+      if let NodeData::Element { ref name, .. } = child.data {
+        let candidate = name.local.as_ref();
+
+        if candidate == tag {
+          return Some(child.clone());
+        }
+
+        if let Some(found) = find_element(child.clone(), tag) {
+          return Some(found);
+        }
+      }
+    }
+
+    None
+  }
+
+  #[test]
+  fn link_density_counts_anchor_text() {
+    let scorer = Scorer::new(20, SanitizerOptions::default());
+
+    let dom = parse_html("<div>Visit <a href=\"#\">Example</a> now</div>");
+
+    let div = find_element(dom.document.clone(), "div").unwrap();
+
+    let density = scorer.link_density(div);
+
+    let expected = 7.0 / 15.0;
+
+    assert!((density - expected).abs() < 1e-6);
+  }
+
+  #[test]
+  fn clean_strips_attributes_and_resolves_links() {
+    let mut dom = parse_html(
+      "<div id=\"main\" class=\"content\"><a href=\"/read\">Read</a><img src=\"/image.png\"></div>",
+    );
+
+    let scorer = Scorer::new(1, SanitizerOptions::default());
+
+    let url = Url::parse("https://example.com/post/").unwrap();
+
+    let div = find_element(dom.document.clone(), "div").unwrap();
+
+    let mut candidates = BTreeMap::new();
+
+    candidates.insert(
+      "/".to_string(),
+      Candidate {
+        node: div.clone(),
+        score: Cell::new(0.0),
+      },
+    );
+
+    scorer.clean(&mut dom, Path::new("/"), div.clone(), &url, &candidates);
+
+    assert!(dom::get_attr("id", div.clone()).is_none());
+    assert!(dom::get_attr("class", div.clone()).is_none());
+
+    let mut anchor = None;
+    let mut image = None;
+
+    for child in div.children.borrow().iter() {
+      if let NodeData::Element { ref name, .. } = child.data {
+        match name.local.as_ref() {
+          "a" => anchor = Some(child.clone()),
+          "img" => image = Some(child.clone()),
+          _ => (),
+        }
+      }
+    }
+
+    let anchor = anchor.expect("missing anchor node");
+    let image = image.expect("missing image node");
+
+    assert_eq!(
+      dom::get_attr("href", anchor).as_deref(),
+      Some("https://example.com/read")
+    );
+
+    assert_eq!(
+      dom::get_attr("src", image).as_deref(),
+      Some("https://example.com/image.png")
+    );
+  }
+
+  #[test]
+  fn find_candidates_scores_article() {
+    let dom = parse_html(
+      "<article><p>This paragraph contains enough characters to exceed the minimum candidate length while also including punctuation.</p></article>",
+    );
+
+    let scorer = Scorer::new(20, SanitizerOptions::default());
+
+    let mut candidates = BTreeMap::new();
+    let mut nodes = BTreeMap::new();
+
+    scorer.find_candidates(
+      Path::new("/"),
+      dom.document.clone(),
+      &mut candidates,
+      &mut nodes,
+    );
+
+    let article_candidate = candidates
+      .values()
+      .find(|candidate| {
+        dom::get_tag_name(candidate.node.clone())
+          == Some(String::from("article"))
+      })
+      .expect("expected article candidate");
+
+    assert!(article_candidate.score.get() > 10.0);
   }
 }

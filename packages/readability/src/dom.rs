@@ -183,3 +183,86 @@ pub(crate) fn text_children_count(handle: Handle) -> usize {
 
   count
 }
+
+#[cfg(test)]
+mod tests {
+  use {
+    super::*,
+    html5ever::{parse_document, tendril::stream::TendrilSink},
+    std::io::Cursor,
+  };
+
+  fn parse_html(html: &str) -> RcDom {
+    let mut cursor = Cursor::new(html.as_bytes());
+
+    parse_document(RcDom::default(), Default::default())
+      .from_utf8()
+      .read_from(&mut cursor)
+      .expect("failed to parse fixture")
+  }
+
+  fn find_element(handle: Handle, tag: &str) -> Option<Handle> {
+    for child in handle.children.borrow().iter() {
+      if let NodeData::Element { ref name, .. } = child.data {
+        let candidate = name.local.as_ref();
+
+        if candidate == tag {
+          return Some(child.clone());
+        }
+
+        if let Some(found) = find_element(child.clone(), tag) {
+          return Some(found);
+        }
+      }
+    }
+
+    None
+  }
+
+  #[test]
+  fn get_tag_name_normalizes_case() {
+    let dom = parse_html("<DIV id=\"sample\">Hello</DIV>");
+
+    let div = find_element(dom.document.clone(), "div").unwrap();
+
+    assert_eq!(get_tag_name(div), Some(String::from("div")));
+  }
+
+  #[test]
+  fn set_attr_overwrites_existing_value() {
+    let dom = parse_html("<img src=\"/image.png\">");
+
+    let img = find_element(dom.document.clone(), "img").unwrap();
+
+    set_attr("src", "https://example.com/image.png", img.clone());
+
+    assert_eq!(
+      get_attr("src", img).as_deref(),
+      Some("https://example.com/image.png")
+    );
+  }
+
+  #[test]
+  fn is_empty_detects_blank_containers() {
+    let dom = parse_html("<div><div>   </div></div>");
+
+    let div = find_element(dom.document.clone(), "div").unwrap();
+
+    assert!(is_empty(div));
+  }
+
+  #[test]
+  fn extract_text_respects_depth_flag() {
+    let dom = parse_html("<div>outside<span>inside</span></div>");
+
+    let div = find_element(dom.document.clone(), "div").unwrap();
+
+    let mut shallow = String::new();
+    extract_text(div.clone(), &mut shallow, false);
+    assert_eq!(shallow, "outside");
+
+    let mut deep = String::new();
+    extract_text(div, &mut deep, true);
+    assert_eq!(deep, "outsideinside");
+  }
+}
