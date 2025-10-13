@@ -76,9 +76,8 @@ export default function DashboardPage() {
 
   const selectedArticle = useMemo(() => {
     return (
-      articles.find(
-        (article) => article.id === effectiveSelectedArticleId
-      ) ?? null
+      articles.find((article) => article.id === effectiveSelectedArticleId) ??
+      null
     );
   }, [articles, effectiveSelectedArticleId]);
 
