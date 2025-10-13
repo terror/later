@@ -55,7 +55,8 @@ impl Server {
         .per_second(5)
         .burst_size(10)
         .use_headers()
-        .finish()?,
+        .finish()
+        .ok_or(anyhow!("failed to build governor config"))?,
     );
 
     let router = Router::new()
