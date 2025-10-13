@@ -2,7 +2,6 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { getLogoutUrl } from '@/lib/api';
 import { motion } from 'framer-motion';
-import { BookMarked } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function DashboardPage() {
@@ -22,11 +21,7 @@ export default function DashboardPage() {
         transition={{ duration: 0.5 }}
       >
         <div className='mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8'>
-          <Link
-            to='/'
-            className='flex items-center gap-2 text-xl font-semibold tracking-tight'
-          >
-            <BookMarked className='h-4 w-4' />
+          <Link to='/' className='text-xl font-semibold tracking-tight'>
             later
           </Link>
           <div className='flex items-center gap-3 text-sm'>
