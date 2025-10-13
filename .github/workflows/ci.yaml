@@ -45,7 +45,7 @@ jobs:
           node --version
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Format
         run: bunx prettier --check .
