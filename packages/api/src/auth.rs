@@ -134,7 +134,7 @@ pub async fn login(
   description = "Complete the GitHub OAuth flow, validate state, and establish a user session.",
   params(
     ("code" = String, Query, description = "Authorization code returned by GitHub."),
-    ("state" = String, Query, description = "Opaque state used to validate the CSRF token."),
+    ("state" = String, Query, description = "Opaque state used to validate the CSRF token.")
   ),
   responses(
     (status = StatusCode::SEE_OTHER, description = "Redirect to the application after creating the session."),
