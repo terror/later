@@ -57,6 +57,17 @@ impl Server {
         .ok_or(anyhow!("failed to build governor config"))?,
     );
 
+    let governor_limiter = governor_config.limiter().clone();
+
+    let interval = Duration::from_secs(60);
+
+    thread::spawn(move || {
+      loop {
+        thread::sleep(interval);
+        governor_limiter.retain_recent();
+      }
+    });
+
     let router = Router::new()
       .route("/auth/authorized", get(auth::login_authorized))
       .route("/auth/login", get(auth::login))
