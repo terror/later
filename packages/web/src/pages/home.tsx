@@ -1,21 +1,9 @@
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/use-auth';
 import { motion } from 'framer-motion';
 import { Construction } from 'lucide-react';
-import { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 export default function HomePage() {
-  const { user, loading } = useAuth();
-
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!loading && user) {
-      navigate('/dashboard');
-    }
-  }, [user, loading, navigate]);
-
   return (
     <div className='bg-background text-foreground relative min-h-screen overflow-hidden'>
       <div className='pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(15,20,25,0.08),_transparent_55%)]' />
@@ -55,15 +43,15 @@ export default function HomePage() {
               href='https://github.com/terror/later'
               target='_blank'
               rel='noreferrer'
-              className='border-border/80 hover:bg-muted inline-flex items-center rounded-full border px-3 py-1 text-xs uppercase tracking-[0.3em] transition'
+              className='border-border/80 hover:bg-muted inline-flex items-center rounded-full border px-3 py-1 text-xs tracking-[0.3em] uppercase transition'
             >
               <Construction className='mr-2 h-3.5 w-3.5' aria-hidden='true' />
               In development · GitHub
             </a>
-            <h1 className='mt-10 text-balance text-4xl font-semibold tracking-tight sm:text-6xl'>
+            <h1 className='mt-10 text-4xl font-semibold tracking-tight text-balance sm:text-6xl'>
               Save anything. Read anywhere.
             </h1>
-            <p className='text-muted-foreground mx-auto mt-6 max-w-2xl text-pretty text-base leading-7 sm:text-lg'>
+            <p className='text-muted-foreground mx-auto mt-6 max-w-2xl text-base leading-7 text-pretty sm:text-lg'>
               Later keeps links tidy so you can come back on your own time.
             </p>
             <div className='mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4'>
