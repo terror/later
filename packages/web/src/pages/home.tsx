@@ -1,21 +1,9 @@
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/use-auth';
 import { motion } from 'framer-motion';
 import { Construction } from 'lucide-react';
-import { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 export default function HomePage() {
-  const { user, loading } = useAuth();
-
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!loading && user) {
-      navigate('/dashboard');
-    }
-  }, [user, loading, navigate]);
-
   return (
     <div className='bg-background text-foreground relative min-h-screen overflow-hidden'>
       <div className='pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(15,20,25,0.08),_transparent_55%)]' />
