@@ -3,6 +3,7 @@ use super::*;
 pub(crate) static COOKIE_NAME: &str = "SESSION";
 
 static CSRF_TOKEN: &str = "csrf_token";
+static HANDOFF_COOKIE: &str = "handoff_cookie";
 static REDIRECT_URL: &str = "redirect_url";
 
 pub(crate) type ConfiguredOAuthClient = oauth2::Client<
@@ -39,8 +40,26 @@ pub(crate) struct AuthRequest {
 }
 
 #[derive(Debug, Deserialize)]
+pub(crate) struct ExchangeParams {
+  code: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub(crate) struct RedirectParams {
   redirect: Option<String>,
+}
+
+fn session_cookie(value: &str) -> Result<HeaderMap> {
+  let cookie = format!("{COOKIE_NAME}={value}; SameSite=Lax; HttpOnly; Path=/");
+
+  let mut headers = HeaderMap::new();
+
+  headers.insert(
+    SET_COOKIE,
+    cookie.parse().context("failed to parse cookie")?,
+  );
+
+  Ok(headers)
 }
 
 pub(crate) fn oauth_client() -> Result<ConfiguredOAuthClient> {
@@ -88,6 +107,7 @@ pub(crate) fn oauth_client() -> Result<ConfiguredOAuthClient> {
 )]
 pub async fn login(
   Query(params): Query<RedirectParams>,
+  AppState(allowed_origins): AppState<AllowedOrigins>,
   AppState(client): AppState<ConfiguredOAuthClient>,
   AppState(store): AppState<RedisSessionStore>,
 ) -> Result<impl IntoResponse> {
@@ -103,8 +123,10 @@ pub async fn login(
     .context("failed in inserting CSRF token into session")?;
 
   if let Some(redirect) = params.redirect {
+    let redirect = allowed_origins.validate(&redirect)?;
+
     session
-      .insert(REDIRECT_URL, &redirect)
+      .insert(REDIRECT_URL, redirect.as_str())
       .context("failed in inserting redirect into session")?;
   }
 
@@ -114,17 +136,7 @@ pub async fn login(
     .context("failed to store CSRF token session")?
     .context("unexpected error retrieving CSRF cookie value")?;
 
-  let cookie =
-    format!("{COOKIE_NAME}={cookie}; SameSite=Lax; HttpOnly; Path=/");
-
-  let mut headers = HeaderMap::new();
-
-  headers.insert(
-    SET_COOKIE,
-    cookie.parse().context("failed to parse cookie")?,
-  );
-
-  Ok((headers, Redirect::to(auth_url.as_ref())))
+  Ok((session_cookie(&cookie)?, Redirect::to(auth_url.as_ref())))
 }
 
 #[utoipa::path(
@@ -143,11 +155,12 @@ pub async fn login(
 )]
 pub(crate) async fn login_authorized(
   Query(query): Query<AuthRequest>,
+  AppState(allowed_origins): AppState<AllowedOrigins>,
   AppState(db): AppState<Db>,
   AppState(store): AppState<RedisSessionStore>,
   AppState(oauth_client): AppState<ConfiguredOAuthClient>,
   TypedHeader(cookies): TypedHeader<headers::Cookie>,
-) -> Result<impl IntoResponse> {
+) -> Result<Response> {
   let redirect = validate_csrf_token(&query, &cookies, &store).await?;
 
   let token = oauth_client
@@ -226,19 +239,70 @@ pub(crate) async fn login_authorized(
     .context("failed to store session")?
     .context("unexpected error retrieving cookie value")?;
 
-  let cookie =
-    format!("{COOKIE_NAME}={cookie}; SameSite=Lax; HttpOnly; Path=/");
+  let Some(redirect) = redirect else {
+    return Ok((session_cookie(&cookie)?, Redirect::to("/")).into_response());
+  };
 
-  let mut headers = HeaderMap::new();
+  let redirect = allowed_origins.validate(&redirect)?;
 
-  headers.insert(
-    SET_COOKIE,
-    cookie.parse().context("failed to parse cookie")?,
-  );
+  let mut handoff = Session::new();
 
-  let redirect_target = redirect.unwrap_or_else(|| "/".to_string());
+  handoff.expire_in(Duration::from_secs(60));
 
-  Ok((headers, Redirect::to(redirect_target.as_str())))
+  handoff
+    .insert(HANDOFF_COOKIE, &cookie)
+    .context("failed in inserting cookie into handoff session")?;
+
+  handoff
+    .insert(REDIRECT_URL, redirect.as_str())
+    .context("failed in inserting redirect into handoff session")?;
+
+  let code = store
+    .store_session(handoff)
+    .await
+    .context("failed to store handoff session")?
+    .context("unexpected error retrieving handoff code")?;
+
+  let mut exchange = redirect
+    .join("/auth/exchange")
+    .context("failed to build exchange URL")?;
+
+  exchange.query_pairs_mut().append_pair("code", &code);
+
+  Ok(Redirect::to(exchange.as_str()).into_response())
+}
+
+#[utoipa::path(
+  get,
+  path = "/auth/exchange",
+  tag = "auth",
+  params(("code" = String, Query)),
+  responses((status = StatusCode::SEE_OTHER))
+)]
+pub(crate) async fn exchange(
+  Query(params): Query<ExchangeParams>,
+  AppState(store): AppState<RedisSessionStore>,
+) -> Result<impl IntoResponse> {
+  let handoff = store
+    .load_session(params.code)
+    .await
+    .context("failed to load handoff session")?
+    .context("handoff session not found")?;
+
+  let cookie = handoff
+    .get::<String>(HANDOFF_COOKIE)
+    .context("cookie not found in handoff session")?;
+
+  let redirect = handoff
+    .get::<String>(REDIRECT_URL)
+    .context("redirect not found in handoff session")?;
+
+  store
+    .destroy_session(handoff)
+    .await
+    .context("failed to destroy handoff session")?;
+
+  Ok((session_cookie(&cookie)?, Redirect::to(&redirect)))
 }
 
 #[utoipa::path(
@@ -256,10 +320,14 @@ pub(crate) async fn login_authorized(
 )]
 pub(crate) async fn logout(
   Query(params): Query<RedirectParams>,
+  AppState(allowed_origins): AppState<AllowedOrigins>,
   AppState(store): AppState<RedisSessionStore>,
   TypedHeader(cookies): TypedHeader<headers::Cookie>,
 ) -> Result<impl IntoResponse> {
-  let redirect_target = params.redirect.unwrap_or_else(|| "/".to_string());
+  let redirect_target = match params.redirect {
+    Some(redirect) => allowed_origins.validate(&redirect)?.to_string(),
+    None => "/".to_string(),
+  };
 
   let cookie = match cookies.get(COOKIE_NAME) {
     Some(cookie) => cookie.to_string(),

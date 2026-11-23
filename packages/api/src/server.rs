@@ -42,7 +42,13 @@ impl Server {
 
     let oauth_client = auth::oauth_client()?;
 
+    let allowed_origins = AllowedOrigins::new(
+      &env::var("ALLOWED_ORIGINS")
+        .unwrap_or_else(|_| "http://localhost:5173".into()),
+    );
+
     let state = State {
+      allowed_origins,
       db,
       oauth_client,
       session_store,
@@ -70,6 +76,7 @@ impl Server {
 
     let router = Router::new()
       .route("/auth/authorized", get(auth::login_authorized))
+      .route("/auth/exchange", get(auth::exchange))
       .route("/auth/login", get(auth::login))
       .route("/auth/logout", get(auth::logout))
       .route("/auth/session", get(auth::session))

@@ -4,7 +4,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 export async function getSession(): Promise<User | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/session`, {
+    const response = await fetch('/auth/session', {
       credentials: 'include',
     });
 
@@ -20,9 +20,9 @@ export async function getSession(): Promise<User | null> {
 }
 
 export function getLoginUrl(): string {
-  return `${API_BASE_URL}/auth/login?redirect=${window.location.href}`;
+  return `${API_BASE_URL}/auth/login?redirect=${encodeURIComponent(window.location.href)}`;
 }
 
 export function getLogoutUrl(): string {
-  return `${API_BASE_URL}/auth/logout?redirect=${window.location.href}`;
+  return `/auth/logout?redirect=${encodeURIComponent(window.location.href)}`;
 }

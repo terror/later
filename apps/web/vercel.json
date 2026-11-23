@@ -1,3 +1,9 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/" }]
+  "rewrites": [
+    {
+      "source": "/auth/:path*",
+      "destination": "https://api.later.sh/auth/:path*"
+    },
+    { "source": "/(.*)", "destination": "/" }
+  ]
 }
