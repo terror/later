@@ -25,11 +25,11 @@ pub(crate) type ConfiguredOAuthClient = oauth2::Client<
   oauth2::EndpointSet,
 >;
 
-pub(crate) struct AuthRedirect;
+pub(crate) struct Unauthorized;
 
-impl IntoResponse for AuthRedirect {
+impl IntoResponse for Unauthorized {
   fn into_response(self) -> Response {
-    Redirect::temporary("/auth/login").into_response()
+    StatusCode::UNAUTHORIZED.into_response()
   }
 }
 
@@ -358,7 +358,7 @@ pub(crate) async fn logout(
   description = "Retrieve the current authenticated user from the session.",
   responses(
     (status = StatusCode::OK, description = "Currently authenticated user.", body = model::User),
-    (status = StatusCode::SEE_OTHER, description = "Not authenticated, redirect to GitHub OAuth.")
+    (status = StatusCode::UNAUTHORIZED, description = "Not authenticated.")
   )
 )]
 pub(crate) async fn session(User(user): User) -> impl IntoResponse {

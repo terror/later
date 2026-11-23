@@ -34,6 +34,8 @@ impl Modify for GithubOAuthSecurity {
   ),
   modifiers(&GithubOAuthSecurity),
   paths(
+    articles::list,
+    articles::save,
     auth::login,
     auth::login_authorized,
     auth::exchange,
@@ -42,10 +44,13 @@ impl Modify for GithubOAuthSecurity {
   ),
   components(
     schemas(
+      articles::SaveArticle,
+      model::Article,
       model::User
     )
   ),
   tags(
+    (name = "articles"),
     (name = "auth", description = "All authentication related endpoints."),
   ),
 )]

@@ -41,7 +41,7 @@ where
   RedisSessionStore: FromRef<S>,
   S: Send + Sync,
 {
-  type Rejection = AuthRedirect;
+  type Rejection = Unauthorized;
 
   async fn from_request_parts(
     parts: &mut Parts,
@@ -54,21 +54,21 @@ where
       .await
       .map_err(|e| match *e.name() {
         header::COOKIE => match e.reason() {
-          TypedHeaderRejectionReason::Missing => AuthRedirect,
+          TypedHeaderRejectionReason::Missing => Unauthorized,
           _ => panic!("unexpected error getting Cookie header(s): {e}"),
         },
         _ => panic!("unexpected error getting cookies: {e}"),
       })?;
 
-    let session_cookie = cookies.get(COOKIE_NAME).ok_or(AuthRedirect)?;
+    let session_cookie = cookies.get(COOKIE_NAME).ok_or(Unauthorized)?;
 
     let session = store
       .load_session(session_cookie.to_string())
       .await
       .unwrap()
-      .ok_or(AuthRedirect)?;
+      .ok_or(Unauthorized)?;
 
-    let user = session.get::<model::User>("user").ok_or(AuthRedirect)?;
+    let user = session.get::<model::User>("user").ok_or(Unauthorized)?;
 
     Ok(User(user))
   }
