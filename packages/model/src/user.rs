@@ -1,10 +1,4 @@
-use {
-  chrono::{DateTime, Utc},
-  serde::{Deserialize, Serialize},
-  sqlx::FromRow,
-  utoipa::ToSchema,
-  uuid::Uuid,
-};
+use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, FromRow)]
 pub struct User {

@@ -1,5 +1,7 @@
 use super::*;
 
+const MAX_BODY_BYTES: usize = 10 * 1024 * 1024;
+
 #[derive(Debug, Parser)]
 pub(crate) struct Server {
   #[clap(short, long, default_value = "80", help = "Port to listen on")]
@@ -75,6 +77,12 @@ impl Server {
     });
 
     let router = Router::new()
+      .route(
+        "/articles",
+        get(articles::list)
+          .post(articles::save)
+          .layer(DefaultBodyLimit::max(MAX_BODY_BYTES)),
+      )
       .route("/auth/authorized", get(auth::login_authorized))
       .route("/auth/exchange", get(auth::exchange))
       .route("/auth/login", get(auth::login))

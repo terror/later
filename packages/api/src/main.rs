@@ -2,13 +2,13 @@ use {
   allowed_origins::AllowedOrigins,
   anyhow::{Context, anyhow},
   async_session::{Session, SessionStore, async_trait, serde_json},
-  auth::{AuthRedirect, COOKIE_NAME},
+  auth::{COOKIE_NAME, Unauthorized},
   axum::{
     Json, RequestPartsExt, Router,
     body::Body,
     extract::{
-      FromRef, FromRequestParts, OptionalFromRequestParts, Query,
-      State as AppState,
+      DefaultBodyLimit, FromRef, FromRequestParts, OptionalFromRequestParts,
+      Query, State as AppState,
     },
     response::{IntoResponse, Redirect, Response},
     routing::get,
@@ -16,11 +16,12 @@ use {
   axum_extra::{
     TypedHeader, headers, typed_header::TypedHeaderRejectionReason,
   },
+  chrono::{DateTime, Utc},
   clap::Parser,
-  db::Db,
+  db::{ArticleContent, Db, NewArticle},
   documentation::Documentation,
   dotenv::dotenv,
-  error::Error,
+  error::{BadRequest, Error},
   http::{
     HeaderMap, Request, StatusCode,
     header::{self, SET_COOKIE, USER_AGENT},
@@ -30,6 +31,7 @@ use {
     AuthUrl, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope,
     TokenResponse, TokenUrl, basic::BasicClient as OAuth2BasicClient,
   },
+  readability::{Readability, ReadabilityOptions},
   redis::{
     AsyncCommands, Client, IntoConnectionInfo, RedisResult,
     aio::ConnectionManager,
@@ -42,17 +44,18 @@ use {
   state::State,
   std::{
     backtrace::BacktraceStatus,
+    collections::HashSet,
     convert::Infallible,
     env,
     fmt::{self, Debug, Display, Formatter},
     net::SocketAddr,
     ops::Deref,
     process,
-    sync::Arc,
+    sync::{Arc, LazyLock},
     thread,
     time::Duration,
   },
-  tokio::net::TcpListener,
+  tokio::{net::TcpListener, task},
   tower::ServiceBuilder,
   tower_governor::{GovernorLayer, governor::GovernorConfigBuilder},
   tower_http::{
@@ -65,11 +68,11 @@ use {
       DefaultOnFailure, DefaultOnRequest, DefaultOnResponse, TraceLayer,
     },
   },
-  tracing::{Level, error, info, info_span},
+  tracing::{Level, error, info, info_span, warn},
   tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt},
   user::User,
   utoipa::{
-    Modify, OpenApi,
+    Modify, OpenApi, ToSchema,
     openapi::{
       Components,
       security::{AuthorizationCode, Flow, OAuth2, Scopes, SecurityScheme},
@@ -79,9 +82,11 @@ use {
 };
 
 mod allowed_origins;
+mod articles;
 mod auth;
 mod documentation;
 mod error;
+mod extraction;
 mod redis_session_store;
 mod server;
 mod state;
