@@ -1,4 +1,5 @@
 use {
+  allowed_origins::AllowedOrigins,
   anyhow::{Context, anyhow},
   async_session::{Session, SessionStore, async_trait, serde_json},
   auth::{AuthRedirect, COOKIE_NAME},
@@ -34,6 +35,7 @@ use {
     aio::ConnectionManager,
   },
   redis_session_store::RedisSessionStore,
+  reqwest::Url,
   serde::Deserialize,
   serde_json::Value,
   server::Server,
@@ -76,6 +78,7 @@ use {
   utoipa_scalar::{Scalar, Servable},
 };
 
+mod allowed_origins;
 mod auth;
 mod documentation;
 mod error;

@@ -36,6 +36,7 @@ impl Modify for GithubOAuthSecurity {
   paths(
     auth::login,
     auth::login_authorized,
+    auth::exchange,
     auth::logout,
     auth::session,
   ),
