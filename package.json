@@ -2,8 +2,8 @@
   "name": "later",
   "private": true,
   "workspaces": [
-    "packages/extension",
-    "packages/web"
+    "apps/extension",
+    "apps/web"
   ],
   "scripts": {
     "fmt": "prettier --write .",

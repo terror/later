@@ -27,7 +27,7 @@ dev: services
     --color \
     -- \
     'cd packages/api && cargo watch --clear --exec run' \
-    'cd packages/web && bun run dev'
+    'cd apps/web && bun run dev'
 
 [group: 'format']
 fmt: fmt-api fmt-web
