@@ -1,10 +1,8 @@
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { getLoginUrl } from '@/lib/api';
-import { motion } from 'framer-motion';
-import { Github } from 'lucide-react';
+import { ArrowLeft, Github } from 'lucide-react';
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function SignInPage() {
   const { user, loading } = useAuth();
@@ -17,35 +15,43 @@ export default function SignInPage() {
     }
   }, [user, loading, navigate]);
 
-  const handleSignIn = () => {
-    window.location.href = getLoginUrl();
-  };
-
   if (loading) {
     return null;
   }
 
   return (
-    <div className='bg-background text-foreground flex min-h-screen items-center justify-center px-4'>
-      <motion.div
-        className='border-border/60 bg-card/80 w-full max-w-sm rounded-2xl border p-8 text-center shadow-sm backdrop-blur-sm'
-        initial={{ opacity: 0, y: 20, scale: 0.96 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      >
-        <h1 className='text-2xl font-semibold tracking-tight'>Sign in</h1>
-        <p className='text-muted-foreground mt-2 text-sm'>
-          Use one of the providers below to continue.
-        </p>
-        <Button
-          size='lg'
-          className='mt-6 w-full cursor-pointer justify-center px-8 text-base'
-          onClick={handleSignIn}
+    <div className='flex min-h-screen flex-col bg-white px-6 pt-10 pb-14 text-neutral-900 antialiased sm:px-12'>
+      <header className='flex items-center justify-between gap-4'>
+        <Link
+          to='/'
+          className='text-[22px] leading-none font-semibold tracking-[-0.035em]'
         >
-          <Github className='size-5' aria-hidden />
-          Sign in with GitHub
-        </Button>
-      </motion.div>
+          later
+        </Link>
+        <Link
+          to='/'
+          className='flex h-11 items-center gap-1.5 text-[15px] font-medium text-neutral-500'
+        >
+          <ArrowLeft className='size-4' aria-hidden />
+          Back
+        </Link>
+      </header>
+      <main className='flex flex-1 flex-col items-start justify-center py-24'>
+        <h1 className='text-4xl leading-[1.08] font-medium tracking-[-0.04em] sm:text-6xl lg:text-[68px]'>
+          Sign in
+          <span className='text-neutral-500'> to keep reading.</span>
+        </h1>
+        <a
+          href={getLoginUrl()}
+          className='mt-12 flex h-13 items-center gap-2.5 rounded-xl bg-neutral-900 px-6 text-base font-medium text-white'
+        >
+          <Github className='size-[18px]' aria-hidden />
+          Continue with GitHub
+        </a>
+        <p className='mt-5 text-sm text-neutral-500'>
+          New here? Signing in creates your account.
+        </p>
+      </main>
     </div>
   );
 }
