@@ -1,6 +1,7 @@
 import App from '@/App.tsx';
 import '@/index.css';
 import { AuthProvider } from '@/providers/auth-provider';
+import '@fontsource-variable/inter';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
