@@ -214,6 +214,18 @@ body {
   color: var(--color-muted-foreground);
 }
 
+.highlight,
+.reader-content mark[data-highlight-id] {
+  border-radius: 0.15em;
+  background: color-mix(in srgb, var(--highlight) 45%, transparent);
+  color: inherit;
+  box-decoration-break: clone;
+}
+
+.reader-content mark[data-highlight-id] {
+  cursor: pointer;
+}
+
 .reader-content table {
   display: block;
   overflow-x: auto;

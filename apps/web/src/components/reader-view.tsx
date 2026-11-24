@@ -1,10 +1,16 @@
+import { ArticleContent } from '@/components/article-content';
 import { ArticleInfo } from '@/components/article-info';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatDate } from '@/lib/format';
 import { crossedEnd, scrollOffset, scrollPosition } from '@/lib/reading';
 import { articleSource, cn } from '@/lib/utils';
-import type { ArticleWithContent } from '@later/types';
+import type {
+  ArticleWithContent,
+  CreateHighlight,
+  Highlight,
+  UpdateHighlight,
+} from '@later/types';
 import {
   Archive,
   ArchiveRestore,
@@ -28,6 +34,10 @@ export function ReaderView({
   onToggleRead,
   onProgress,
   onDelete,
+  highlights,
+  onCreateHighlight,
+  onUpdateHighlight,
+  onDeleteHighlight,
 }: {
   article: ArticleWithContent | null;
   error?: boolean;
@@ -36,8 +46,16 @@ export function ReaderView({
   onToggleRead: () => void;
   onProgress: (scrollPosition: number) => void;
   onDelete: () => void;
+  highlights: Highlight[];
+  onCreateHighlight: (range: CreateHighlight) => void;
+  onUpdateHighlight: (highlightId: string, update: UpdateHighlight) => void;
+  onDeleteHighlight: (highlightId: string) => void;
 }) {
   const [infoOpen, setInfoOpen] = useState(true);
+
+  const [activeHighlightId, setActiveHighlightId] = useState<string | null>(
+    null
+  );
 
   const main = useRef<HTMLElement>(null);
 
@@ -222,9 +240,14 @@ export function ReaderView({
                   </p>
                 )}
                 {article.content ? (
-                  <div
-                    className='reader-content mt-10'
-                    dangerouslySetInnerHTML={{ __html: article.content }}
+                  <ArticleContent
+                    content={article.content}
+                    highlights={highlights}
+                    activeHighlightId={activeHighlightId}
+                    onActiveHighlightChange={setActiveHighlightId}
+                    onCreateHighlight={onCreateHighlight}
+                    onUpdateHighlight={onUpdateHighlight}
+                    onDeleteHighlight={onDeleteHighlight}
                   />
                 ) : (
                   <p className='text-muted-foreground mt-10'>
@@ -248,6 +271,10 @@ export function ReaderView({
             onToggleArchive={onToggleArchive}
             onToggleRead={onToggleRead}
             onDelete={onDelete}
+            highlights={highlights}
+            onSelectHighlight={(highlight) =>
+              setActiveHighlightId(highlight.highlight_id)
+            }
           />
         )}
       </div>

@@ -20,11 +20,17 @@ pub(crate) fn extract(html: &str, url: &Url) -> Option<ArticleContent> {
     .inspect_err(|error| warn!("failed to extract {url}: {error}"))
     .ok()?;
 
-  let word_count = article.text_content.split_whitespace().count();
+  let content = SANITIZER.clean(&article.content).to_string();
+
+  let text_content = dom_query::Document::fragment(content.as_str())
+    .text()
+    .to_string();
+
+  let word_count = text_content.split_whitespace().count();
 
   Some(ArticleContent {
     author: article.byline,
-    content: SANITIZER.clean(&article.content).to_string(),
+    content,
     dir: article.dir,
     excerpt: article.excerpt,
     lang: article.lang,
@@ -36,7 +42,7 @@ pub(crate) fn extract(html: &str, url: &Url) -> Option<ArticleContent> {
     reading_time_minutes: i32::try_from(word_count.div_ceil(WORDS_PER_MINUTE))
       .unwrap_or(i32::MAX),
     site_name: article.site_name,
-    text_content: article.text_content,
+    text_content,
     title: Some(article.title).filter(|title| !title.is_empty()),
     word_count: i32::try_from(word_count).unwrap_or(i32::MAX),
   })

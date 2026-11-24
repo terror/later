@@ -1,10 +1,11 @@
+import { HighlightList } from '@/components/highlight-list';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { SiteTile } from '@/components/ui/site-tile';
 import { formatDate, formatLength, formatTimeSpent } from '@/lib/format';
 import { readingStatus } from '@/lib/reading';
 import { articleSource, cn } from '@/lib/utils';
-import type { Article } from '@later/types';
+import type { Article, Highlight } from '@later/types';
 import {
   Archive,
   ArchiveRestore,
@@ -24,6 +25,8 @@ export function ArticleInfo({
   onToggleRead,
   onDelete,
   showRead = true,
+  highlights,
+  onSelectHighlight,
   className,
 }: {
   article: Article;
@@ -32,6 +35,8 @@ export function ArticleInfo({
   onToggleRead: () => void;
   onDelete: () => void;
   showRead?: boolean;
+  highlights?: Highlight[];
+  onSelectHighlight?: (highlight: Highlight) => void;
   className?: string;
 }) {
   const source = articleSource(article);
@@ -147,6 +152,12 @@ export function ArticleInfo({
           <Trash2 />
         </Button>
       </div>
+      {highlights && (
+        <HighlightList
+          highlights={highlights}
+          onSelect={(highlight) => onSelectHighlight?.(highlight)}
+        />
+      )}
     </aside>
   );
 }

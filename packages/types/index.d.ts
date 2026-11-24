@@ -23,8 +23,28 @@ export interface ArticleWithContent extends Article {
     content: string | null;
 }
 
+export interface CreateHighlight {
+    end_offset: number;
+    selected_text: string;
+    start_offset: number;
+}
+
 export interface CreatedToken {
     token: string;
+}
+
+export interface Highlight {
+    highlight_id: string;
+    article_id: string;
+    selected_text: string;
+    context_before: string | null;
+    context_after: string | null;
+    start_offset: number;
+    end_offset: number;
+    color: string;
+    note: string | null;
+    created_at: string;
+    updated_at: string;
 }
 
 export interface ReadingProgress {
@@ -41,6 +61,11 @@ export interface UpdateArticle {
     is_archived?: boolean;
     is_favorited?: boolean;
     is_read?: boolean;
+}
+
+export interface UpdateHighlight {
+    color?: string;
+    note?: string;
 }
 
 export interface User {

@@ -1,8 +1,14 @@
 import { useState } from 'react';
 import { fn } from 'storybook/test';
 
-import { now, reading, resumed } from '../../.storybook/fixtures';
+import { highlights, now, reading, resumed } from '../../.storybook/fixtures';
 import preview from '../../.storybook/preview';
+import {
+  DEFAULT_HIGHLIGHT_COLOR,
+  insertHighlight,
+  patchHighlight,
+  removeHighlight,
+} from '../lib/highlights';
 import { applyUpdate } from '../lib/library';
 import { ReaderView } from './reader-view';
 
@@ -15,15 +21,50 @@ const meta = preview.meta({
     onToggleRead: fn(),
     onProgress: fn(),
     onDelete: fn(),
+    highlights: [],
+    onCreateHighlight: fn(),
+    onUpdateHighlight: fn(),
+    onDeleteHighlight: fn(),
   },
   parameters: { layout: 'fullscreen' },
   render: function Render(args) {
     const [article, setArticle] = useState(args.article);
 
+    const [highlights, setHighlights] = useState(args.highlights);
+
     return (
       <ReaderView
         {...args}
         article={article}
+        highlights={highlights}
+        onCreateHighlight={(range) => {
+          args.onCreateHighlight(range);
+          setHighlights((highlights) =>
+            insertHighlight(highlights, {
+              ...range,
+              highlight_id: crypto.randomUUID(),
+              article_id: reading.article_id,
+              context_before: null,
+              context_after: null,
+              color: DEFAULT_HIGHLIGHT_COLOR,
+              note: null,
+              created_at: now.toISOString(),
+              updated_at: now.toISOString(),
+            })
+          );
+        }}
+        onUpdateHighlight={(highlightId, update) => {
+          args.onUpdateHighlight(highlightId, update);
+          setHighlights((highlights) =>
+            patchHighlight(highlights, highlightId, update)
+          );
+        }}
+        onDeleteHighlight={(highlightId) => {
+          args.onDeleteHighlight(highlightId);
+          setHighlights((highlights) =>
+            removeHighlight(highlights, highlightId)
+          );
+        }}
         onToggleRead={() => {
           args.onToggleRead();
           setArticle(
@@ -59,6 +100,11 @@ export const Resumed = meta.story({
 
 export const Read = meta.story({
   args: { article: { ...reading, date_read: '2026-03-12T14:00:00Z' } },
+  globals: { viewport: { value: 'laptop', isRotated: false } },
+});
+
+export const WithHighlights = meta.story({
+  args: { highlights },
   globals: { viewport: { value: 'laptop', isRotated: false } },
 });
 

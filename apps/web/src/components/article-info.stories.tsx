@@ -1,6 +1,6 @@
 import { fn } from 'storybook/test';
 
-import { articles } from '../../.storybook/fixtures';
+import { articles, highlights, reading } from '../../.storybook/fixtures';
 import preview from '../../.storybook/preview';
 import { ArticleInfo } from './article-info';
 
@@ -23,3 +23,12 @@ export const Favorited = meta.story({ args: { article: articles[1] } });
 export const InProgress = meta.story({ args: { article: articles[2] } });
 
 export const Read = meta.story({ args: { article: articles[4] } });
+
+export const WithHighlights = meta.story({
+  args: {
+    article: reading,
+    highlights,
+    showRead: false,
+    onSelectHighlight: fn(),
+  },
+});
