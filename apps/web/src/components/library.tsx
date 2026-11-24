@@ -89,7 +89,7 @@ export function Library({
 
   useEffect(() => {
     if (!hasMore || loadingMore || !onLoadMore || !sentinel.current) {
-      return;
+      return undefined;
     }
 
     const observer = new IntersectionObserver(
@@ -104,7 +104,7 @@ export function Library({
     observer.observe(sentinel.current);
 
     return () => observer.disconnect();
-  }, [hasMore, loadingMore, onLoadMore, articles]);
+  }, [hasMore, loadingMore, onLoadMore]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

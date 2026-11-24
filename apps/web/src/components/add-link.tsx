@@ -55,7 +55,6 @@ export function AddLink({
           <input
             type='url'
             required
-            autoFocus
             aria-label='URL'
             placeholder='https://'
             value={url}
