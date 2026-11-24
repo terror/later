@@ -1,4 +1,5 @@
 use super::*;
+use unclutter::{Parser, ParserOptions};
 
 const MAX_ELEMENTS: usize = 100_000;
 
@@ -11,12 +12,12 @@ static SANITIZER: LazyLock<ammonia::Builder<'static>> = LazyLock::new(|| {
 });
 
 pub(crate) fn extract(html: &str, url: &Url) -> Option<ArticleContent> {
-  let options = ReadabilityOptions::builder()
+  let options = ParserOptions::builder()
     .max_elements(Some(MAX_ELEMENTS))
     .build();
 
-  let article = Readability::new(html, Some(url.as_str()), options)
-    .and_then(|mut readability| readability.parse())
+  let article = Parser::new(html, Some(url.as_str()), options)
+    .and_then(Parser::parse)
     .inspect_err(|error| warn!("failed to extract {url}: {error}"))
     .ok()?;
 
