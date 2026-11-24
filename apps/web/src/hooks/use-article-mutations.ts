@@ -1,7 +1,55 @@
-import { deleteArticle, updateArticle } from '@/lib/api';
-import { type ArticleUpdate, patchArticle, removeArticle } from '@/lib/library';
+import { deleteArticle, saveProgress, updateArticle } from '@/lib/api';
+import {
+  type ArticleUpdate,
+  applyUpdate,
+  patchArticle,
+  removeArticle,
+} from '@/lib/library';
 import { articleQuery, articlesQuery } from '@/lib/queries';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { Article, ArticleWithContent, ReadingProgress } from '@/lib/types';
+import {
+  type QueryClient,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
+
+type Snapshot = {
+  articles: Article[] | undefined;
+  article: ArticleWithContent | undefined;
+};
+
+async function patchCache(
+  queryClient: QueryClient,
+  articleId: string,
+  patch: <T extends Article>(article: T) => T
+): Promise<Snapshot> {
+  await queryClient.cancelQueries({ queryKey: articlesQuery.queryKey });
+
+  const articles = queryClient.getQueryData(articlesQuery.queryKey);
+
+  const article = queryClient.getQueryData(articleQuery(articleId).queryKey);
+
+  queryClient.setQueryData(
+    articlesQuery.queryKey,
+    (articles) => articles && patchArticle(articles, articleId, patch)
+  );
+
+  queryClient.setQueryData(
+    articleQuery(articleId).queryKey,
+    (article) => article && patch(article)
+  );
+
+  return { articles, article };
+}
+
+function restoreCache(
+  queryClient: QueryClient,
+  articleId: string,
+  snapshot: Snapshot | undefined
+) {
+  queryClient.setQueryData(articlesQuery.queryKey, snapshot?.articles);
+  queryClient.setQueryData(articleQuery(articleId).queryKey, snapshot?.article);
+}
 
 export function useUpdateArticle() {
   const queryClient = useQueryClient();
@@ -14,37 +62,42 @@ export function useUpdateArticle() {
       articleId: string;
       update: ArticleUpdate;
     }) => updateArticle(articleId, update),
-    onMutate: async ({ articleId, update }) => {
-      await queryClient.cancelQueries({ queryKey: articlesQuery.queryKey });
+    onMutate: ({ articleId, update }) => {
+      const now = new Date();
 
-      const articles = queryClient.getQueryData(articlesQuery.queryKey);
-
-      const article = queryClient.getQueryData(
-        articleQuery(articleId).queryKey
+      return patchCache(queryClient, articleId, (article) =>
+        applyUpdate(article, update, now)
       );
-
-      queryClient.setQueryData(
-        articlesQuery.queryKey,
-        (articles) => articles && patchArticle(articles, articleId, update)
-      );
-
-      queryClient.setQueryData(
-        articleQuery(articleId).queryKey,
-        (article) => article && { ...article, ...update }
-      );
-
-      return { articles, article };
     },
-    onError: (error, { articleId }, context) => {
+    onError: (error, { articleId }, snapshot) => {
       console.error(error);
-      queryClient.setQueryData(articlesQuery.queryKey, context?.articles);
-      queryClient.setQueryData(
-        articleQuery(articleId).queryKey,
-        context?.article
-      );
+      restoreCache(queryClient, articleId, snapshot);
     },
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: articlesQuery.queryKey }),
+  });
+}
+
+export function useSaveProgress() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      articleId,
+      progress,
+    }: {
+      articleId: string;
+      progress: ReadingProgress;
+    }) => saveProgress(articleId, progress),
+    onMutate: ({ articleId, progress }) =>
+      patchCache(queryClient, articleId, (article) => ({
+        ...article,
+        progress,
+      })),
+    onError: (error, { articleId }, snapshot) => {
+      console.error(error);
+      restoreCache(queryClient, articleId, snapshot);
+    },
   });
 }
 

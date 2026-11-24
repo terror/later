@@ -53,15 +53,36 @@ export function filterArticles(
     );
 }
 
-export type ArticleUpdate = { is_archived?: boolean; is_favorited?: boolean };
+export type ArticleUpdate = {
+  is_archived?: boolean;
+  is_favorited?: boolean;
+  is_read?: boolean;
+};
+
+export function applyUpdate<T extends Article>(
+  article: T,
+  { is_read, ...fields }: ArticleUpdate,
+  now: Date
+): T {
+  return {
+    ...article,
+    ...fields,
+    date_read:
+      is_read === undefined
+        ? article.date_read
+        : is_read
+          ? (article.date_read ?? now.toISOString())
+          : null,
+  };
+}
 
 export function patchArticle(
   articles: Article[],
   articleId: string,
-  update: ArticleUpdate
+  patch: (article: Article) => Article
 ): Article[] {
   return articles.map((article) =>
-    article.article_id === articleId ? { ...article, ...update } : article
+    article.article_id === articleId ? patch(article) : article
   );
 }
 

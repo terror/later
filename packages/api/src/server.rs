@@ -89,6 +89,10 @@ impl Server {
           .patch(articles::update)
           .delete(articles::delete),
       )
+      .route(
+        "/articles/{article_id}/progress",
+        put(articles::save_progress),
+      )
       .route("/auth/authorized", get(auth::login_authorized))
       .route("/auth/exchange", get(auth::exchange))
       .route("/auth/login", get(auth::login))

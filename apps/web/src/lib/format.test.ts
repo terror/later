@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
-import { formatDate, formatLength, formatSaved } from './format';
+import {
+  formatDate,
+  formatLength,
+  formatSaved,
+  formatTimeSpent,
+} from './format';
 
 describe('formatSaved', () => {
   test('describes how long ago an article was saved', () => {
@@ -37,5 +42,16 @@ describe('formatLength', () => {
     case_(2840, null, '2,840 words');
     case_(null, 12, '12 min');
     case_(null, null, null);
+  });
+});
+
+describe('formatTimeSpent', () => {
+  test('rounds to minutes', () => {
+    const case_ = (seconds: number, expected: string | null) =>
+      expect(formatTimeSpent(seconds)).toBe(expected);
+
+    case_(0, null);
+    case_(10, '1 min spent');
+    case_(190, '3 min spent');
   });
 });

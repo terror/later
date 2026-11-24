@@ -27,6 +27,7 @@ function article(
     is_archived: false,
     is_favorited: false,
     date_read: null,
+    progress: { scroll_position: 0, time_spent_seconds: 0 },
     ...fields,
   };
 }
@@ -63,6 +64,7 @@ export const articles: Article[] = [
     excerpt:
       'Files that outlive the apps that made them, and the small habits that keep them useful for decades.',
     word_count: 1620,
+    progress: { scroll_position: 0.42, time_spent_seconds: 190 },
     date_saved: '2026-03-11T18:00:00Z',
   }),
   article(4, {
@@ -84,6 +86,8 @@ export const articles: Article[] = [
     excerpt:
       'Attention is less a muscle than a garden. It grows toward whatever you return to.',
     word_count: 2050,
+    date_read: '2026-03-10T20:00:00Z',
+    progress: { scroll_position: 1, time_spent_seconds: 540 },
     date_saved: '2026-03-08T12:00:00Z',
   }),
   article(6, {
@@ -113,4 +117,10 @@ export const reading: ArticleWithContent = {
   ...articles[0],
   content:
     '<p>Most of what reaches us is written to be finished quickly. Headlines promise a takeaway, summaries promise the takeaway without the reading, and the reading itself becomes something to get through.</p><p>But the useful part of an essay is rarely the conclusion. It is the path the writer took to get there: the objection they considered, the example that did not quite fit, the paragraph where they changed their mind.</p><p>Reading slowly is not about reading less. It is about letting a piece of writing finish its work on you before you move on to the next one. That usually means saving it for a moment when you can give it your full attention.</p><p>The habit is simple. When something looks worth reading, put it somewhere safe. Come back when the day is quieter. Read it once for the idea and, if it earns it, once more for the craft.</p>',
+};
+
+export const resumed: ArticleWithContent = {
+  ...reading,
+  content: reading.content?.repeat(4) ?? null,
+  progress: { scroll_position: 0.5, time_spent_seconds: 240 },
 };

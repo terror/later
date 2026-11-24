@@ -1,12 +1,13 @@
 import { ReaderView } from '@/components/reader-view';
 import {
   useDeleteArticle,
+  useSaveProgress,
   useUpdateArticle,
 } from '@/hooks/use-article-mutations';
 import { useAuth } from '@/hooks/use-auth';
 import { articleQuery } from '@/lib/queries';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 export default function ReaderPage() {
@@ -24,6 +25,14 @@ export default function ReaderPage() {
   const update = useUpdateArticle();
 
   const remove = useDeleteArticle();
+
+  const saveProgress = useSaveProgress();
+
+  const counted = useRef(0);
+
+  useEffect(() => {
+    counted.current = Date.now();
+  }, [articleId]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -49,6 +58,30 @@ export default function ReaderPage() {
           update: { is_archived: !article.is_archived },
         })
       }
+      onToggleRead={() =>
+        article &&
+        update.mutate({
+          articleId,
+          update: { is_read: article.date_read === null },
+        })
+      }
+      onProgress={(scroll_position) => {
+        if (!article) {
+          return;
+        }
+
+        const seconds = Math.floor((Date.now() - counted.current) / 1000);
+
+        counted.current += seconds * 1000;
+
+        saveProgress.mutate({
+          articleId,
+          progress: {
+            scroll_position,
+            time_spent_seconds: article.progress.time_spent_seconds + seconds,
+          },
+        });
+      }}
       onDelete={() =>
         remove.mutate(articleId, { onSuccess: () => navigate('/') })
       }

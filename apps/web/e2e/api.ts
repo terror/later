@@ -36,6 +36,14 @@ export async function mockApi(
         return route.fulfill({ json: saved });
       }
 
+      const progress = saved.find(
+        (article) => pathname === `/api/articles/${article.article_id}/progress`
+      );
+
+      if (progress && request.method() === 'PUT') {
+        return route.fulfill({ json: request.postDataJSON() });
+      }
+
       const article = saved.find(
         (article) => pathname === `/api/articles/${article.article_id}`
       );
@@ -48,7 +56,17 @@ export async function mockApi(
         case 'GET':
           return route.fulfill({ json: { ...article, content } });
         case 'PATCH': {
-          const updated = { ...article, ...request.postDataJSON() };
+          const { is_read, ...fields } = request.postDataJSON();
+          const updated = {
+            ...article,
+            ...fields,
+            date_read:
+              is_read === undefined
+                ? article.date_read
+                : is_read
+                  ? '2026-03-12T12:00:00Z'
+                  : null,
+          };
           saved = saved.map((article) =>
             article.article_id === updated.article_id ? updated : article
           );

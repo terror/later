@@ -38,6 +38,7 @@ impl Modify for GithubOAuthSecurity {
     articles::get,
     articles::list,
     articles::save,
+    articles::save_progress,
     articles::update,
     auth::login,
     auth::login_authorized,
@@ -53,6 +54,7 @@ impl Modify for GithubOAuthSecurity {
       articles::UpdateArticle,
       model::Article,
       model::ArticleWithContent,
+      model::ReadingProgress,
       model::User,
       tokens::CreatedToken
     )
