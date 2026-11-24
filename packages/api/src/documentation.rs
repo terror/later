@@ -50,13 +50,13 @@ impl Modify for GithubOAuthSecurity {
   ),
   components(
     schemas(
-      articles::SaveArticle,
-      articles::UpdateArticle,
       model::Article,
       model::ArticleWithContent,
+      model::CreatedToken,
       model::ReadingProgress,
-      model::User,
-      tokens::CreatedToken
+      model::SaveArticle,
+      model::UpdateArticle,
+      model::User
     )
   ),
   tags(

@@ -3,8 +3,8 @@ import { Progress } from '@/components/ui/progress';
 import { SiteTile } from '@/components/ui/site-tile';
 import { formatDate, formatLength, formatTimeSpent } from '@/lib/format';
 import { readingStatus } from '@/lib/reading';
-import type { Article } from '@/lib/types';
 import { articleSource, cn } from '@/lib/utils';
+import type { Article } from '@later/types';
 import {
   Archive,
   ArchiveRestore,

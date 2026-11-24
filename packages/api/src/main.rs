@@ -41,7 +41,7 @@ use {
   },
   redis_session_store::RedisSessionStore,
   reqwest::Url,
-  serde::{Deserialize, Serialize},
+  serde::Deserialize,
   serde_json::Value,
   server::Server,
   sha2::{Digest, Sha256},
@@ -76,7 +76,7 @@ use {
   tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt},
   user::User,
   utoipa::{
-    Modify, OpenApi, ToSchema,
+    Modify, OpenApi,
     openapi::{
       Components,
       security::{AuthorizationCode, Flow, OAuth2, Scopes, SecurityScheme},

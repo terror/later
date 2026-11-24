@@ -1,2 +1,3 @@
 apps/extension/.output
 apps/extension/.wxt
+packages/types/index.d.ts

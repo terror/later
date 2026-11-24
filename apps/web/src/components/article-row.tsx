@@ -2,8 +2,8 @@ import { Progress } from '@/components/ui/progress';
 import { SiteTile } from '@/components/ui/site-tile';
 import { formatSaved } from '@/lib/format';
 import { readingStatus } from '@/lib/reading';
-import type { Article } from '@/lib/types';
 import { articleSource, cn } from '@/lib/utils';
+import type { Article } from '@later/types';
 import { Link } from 'react-router-dom';
 
 export function ArticleRow({

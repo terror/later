@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatDate } from '@/lib/format';
 import { crossedEnd, scrollOffset, scrollPosition } from '@/lib/reading';
-import type { ArticleWithContent } from '@/lib/types';
 import { articleSource, cn } from '@/lib/utils';
+import type { ArticleWithContent } from '@later/types';
 import {
   Archive,
   ArchiveRestore,

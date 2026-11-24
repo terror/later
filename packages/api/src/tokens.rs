@@ -1,17 +1,12 @@
 use super::*;
 
-#[derive(Debug, Serialize, ToSchema)]
-pub(crate) struct CreatedToken {
-  token: String,
-}
-
 #[utoipa::path(
   post,
   path = "/tokens",
   tag = "tokens",
   description = "Create an API token for the authenticated user.",
   responses(
-    (status = StatusCode::CREATED, body = CreatedToken),
+    (status = StatusCode::CREATED, body = model::CreatedToken),
     (status = StatusCode::UNAUTHORIZED)
   )
 )]
@@ -25,7 +20,7 @@ pub(crate) async fn create(
     .await
     .context("failed to create API token")?;
 
-  Ok((StatusCode::CREATED, Json(CreatedToken { token })))
+  Ok((StatusCode::CREATED, Json(model::CreatedToken { token })))
 }
 
 #[utoipa::path(

@@ -4,46 +4,39 @@ import { UnauthorizedError } from './errors';
 import { type Status, isSavable, saveStatus } from './save';
 
 describe('isSavable', () => {
-  test('accepts http and https URLs', () => {
-    const case_ = (url: string | undefined, expected: boolean) =>
-      expect(isSavable(url)).toBe(expected);
-
-    case_('https://foo.com/', true);
-    case_('http://foo.com/', true);
-    case_('chrome://foo', false);
-    case_('about:blank', false);
-    case_('', false);
-    case_(undefined, false);
+  test.each<[string | undefined, boolean]>([
+    ['https://foo.com/', true],
+    ['http://foo.com/', true],
+    ['chrome://foo', false],
+    ['about:blank', false],
+    ['', false],
+    [undefined, false],
+  ])('%p is %p', (url, expected) => {
+    expect(isSavable(url)).toBe(expected);
   });
 });
 
 describe('saveStatus', () => {
-  test('maps mutation state to status', () => {
-    const case_ = (
-      mutation: Parameters<typeof saveStatus>[0],
-      expected: Status
-    ) => expect(saveStatus(mutation)).toEqual(expected);
-
-    case_({ status: 'idle', data: undefined, error: null }, { kind: 'saving' });
-    case_(
-      { status: 'pending', data: undefined, error: null },
-      { kind: 'saving' }
-    );
-    case_(
+  test.each<[Parameters<typeof saveStatus>[0], Status]>([
+    [{ status: 'idle', data: undefined, error: null }, { kind: 'saving' }],
+    [{ status: 'pending', data: undefined, error: null }, { kind: 'saving' }],
+    [
       { status: 'success', data: 'foo', error: null },
-      { kind: 'saved', title: 'foo' }
-    );
-    case_(
+      { kind: 'saved', title: 'foo' },
+    ],
+    [
       { status: 'success', data: null, error: null },
-      { kind: 'saved', title: null }
-    );
-    case_(
+      { kind: 'saved', title: null },
+    ],
+    [
       { status: 'error', data: undefined, error: new Error('foo') },
-      { kind: 'error', message: 'foo' }
-    );
-    case_(
+      { kind: 'error', message: 'foo' },
+    ],
+    [
       { status: 'error', data: undefined, error: new UnauthorizedError() },
-      { kind: 'saving' }
-    );
+      { kind: 'saving' },
+    ],
+  ])('maps %p to %p', (mutation, expected) => {
+    expect(saveStatus(mutation)).toEqual(expected);
   });
 });

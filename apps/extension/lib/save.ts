@@ -7,7 +7,7 @@ export type Status =
   | { kind: 'saved'; title: string | null }
   | { kind: 'error'; message: string };
 
-export function isSavable(url: string | undefined): boolean {
+export function isSavable(url: string | undefined): url is string {
   return url !== undefined && /^https?:/.test(url);
 }
 

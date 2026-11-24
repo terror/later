@@ -1,4 +1,4 @@
-import type { Article, User } from '../src/lib/types';
+import type { Article, User } from '@later/types';
 
 export const now = new Date('2026-03-12T12:00:00Z');
 

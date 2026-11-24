@@ -1,6 +1,7 @@
 import { browser, storage } from '#imports';
 import { UnauthorizedError } from '@/lib/errors';
 import { isSavable } from '@/lib/save';
+import type { Article, SaveArticle } from '@later/types';
 
 export const API_URL = import.meta.env.WXT_API_URL || 'https://api.later.sh';
 
@@ -52,16 +53,16 @@ export async function savePage(): Promise<string | null> {
   const response = await request('/articles', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url: tab.url, html }),
+    body: JSON.stringify({ url: tab.url, html } satisfies SaveArticle),
   });
 
   if (!response.ok) {
     throw new Error('Something went wrong. Try again.');
   }
 
-  const article = await response.json();
+  const article: Article = await response.json();
 
-  return article.title ?? null;
+  return article.title;
 }
 
 export async function revokeToken(): Promise<void> {

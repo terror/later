@@ -1,6 +1,12 @@
+import type {
+  Article,
+  ArticleWithContent,
+  CreatedToken,
+  UpdateArticle,
+  User,
+} from '@later/types';
 import type { Page } from '@playwright/test';
 
-import type { Article, User } from '../src/lib/types';
 import { content, token } from './fixtures';
 
 export async function mockApi(
@@ -29,7 +35,10 @@ export async function mockApi(
       }
 
       if (pathname === '/api/tokens' && request.method() === 'POST') {
-        return route.fulfill({ status: 201, json: { token } });
+        return route.fulfill({
+          status: 201,
+          json: { token } satisfies CreatedToken,
+        });
       }
 
       if (pathname === '/api/articles' && request.method() === 'GET') {
@@ -54,10 +63,12 @@ export async function mockApi(
 
       switch (request.method()) {
         case 'GET':
-          return route.fulfill({ json: { ...article, content } });
+          return route.fulfill({
+            json: { ...article, content } satisfies ArticleWithContent,
+          });
         case 'PATCH': {
-          const { is_read, ...fields } = request.postDataJSON();
-          const updated = {
+          const { is_read, ...fields }: UpdateArticle = request.postDataJSON();
+          const updated: Article = {
             ...article,
             ...fields,
             date_read:

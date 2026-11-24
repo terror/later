@@ -1,3 +1,4 @@
+import type { Article } from '@later/types';
 import { describe, expect, test } from 'bun:test';
 
 import {
@@ -7,7 +8,6 @@ import {
   patchArticle,
   removeArticle,
 } from './library';
-import type { Article } from './types';
 
 function article(fields: Partial<Article>): Article {
   return {
@@ -55,22 +55,18 @@ const articles = [
 ];
 
 describe('filterArticles', () => {
-  test('filters by view and query and sorts by date saved', () => {
-    const case_ = (
-      options: Parameters<typeof filterArticles>[1],
-      expected: string[]
-    ) =>
-      expect(
-        filterArticles(articles, options).map(({ article_id }) => article_id)
-      ).toEqual(expected);
-
-    case_({ view: 'inbox', query: '', sort: 'newest' }, ['b', 'a']);
-    case_({ view: 'inbox', query: '', sort: 'oldest' }, ['a', 'b']);
-    case_({ view: 'favorites', query: '', sort: 'newest' }, ['b', 'c']);
-    case_({ view: 'archive', query: '', sort: 'newest' }, ['c']);
-    case_({ view: 'inbox', query: ' baz ', sort: 'newest' }, ['b']);
-    case_({ view: 'archive', query: 'bob', sort: 'newest' }, ['c']);
-    case_({ view: 'inbox', query: 'foo.com', sort: 'newest' }, ['b', 'a']);
+  test.each<[Parameters<typeof filterArticles>[1], string[]]>([
+    [{ view: 'inbox', query: '', sort: 'newest' }, ['b', 'a']],
+    [{ view: 'inbox', query: '', sort: 'oldest' }, ['a', 'b']],
+    [{ view: 'favorites', query: '', sort: 'newest' }, ['b', 'c']],
+    [{ view: 'archive', query: '', sort: 'newest' }, ['c']],
+    [{ view: 'inbox', query: ' baz ', sort: 'newest' }, ['b']],
+    [{ view: 'archive', query: 'bob', sort: 'newest' }, ['c']],
+    [{ view: 'inbox', query: 'foo.com', sort: 'newest' }, ['b', 'a']],
+  ])('filters %p to %p', (options, expected) => {
+    expect(
+      filterArticles(articles, options).map(({ article_id }) => article_id)
+    ).toEqual(expected);
   });
 });
 
@@ -100,30 +96,27 @@ describe('patchArticle', () => {
 });
 
 describe('applyUpdate', () => {
-  test('applies fields and maps is_read to date_read', () => {
-    const now = new Date('2026-03-12T15:00:00Z');
+  const now = new Date('2026-03-12T15:00:00Z');
 
-    const case_ = (
-      fields: Partial<Article>,
-      update: Parameters<typeof applyUpdate>[1],
-      expected: Partial<Article>
-    ) =>
-      expect(applyUpdate(article(fields), update, now)).toEqual(
-        article(expected)
-      );
-
-    case_({}, { is_favorited: true }, { is_favorited: true });
-    case_({}, { is_read: true }, { date_read: '2026-03-12T15:00:00.000Z' });
-    case_(
+  test.each<
+    [Partial<Article>, Parameters<typeof applyUpdate>[1], Partial<Article>]
+  >([
+    [{}, { is_favorited: true }, { is_favorited: true }],
+    [{}, { is_read: true }, { date_read: '2026-03-12T15:00:00.000Z' }],
+    [
       { date_read: '2026-03-10T00:00:00Z' },
       { is_read: true },
-      { date_read: '2026-03-10T00:00:00Z' }
-    );
-    case_({ date_read: '2026-03-10T00:00:00Z' }, { is_read: false }, {});
-    case_(
+      { date_read: '2026-03-10T00:00:00Z' },
+    ],
+    [{ date_read: '2026-03-10T00:00:00Z' }, { is_read: false }, {}],
+    [
       { date_read: '2026-03-10T00:00:00Z' },
       { is_archived: true },
-      { date_read: '2026-03-10T00:00:00Z', is_archived: true }
+      { date_read: '2026-03-10T00:00:00Z', is_archived: true },
+    ],
+  ])('applies %p with %p', (fields, update, expected) => {
+    expect(applyUpdate(article(fields), update, now)).toEqual(
+      article(expected)
     );
   });
 });

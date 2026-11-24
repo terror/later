@@ -8,19 +8,18 @@ import {
 } from './format';
 
 describe('formatSaved', () => {
-  test('describes how long ago an article was saved', () => {
-    const now = new Date('2026-03-12T15:00:00Z');
+  const now = new Date('2026-03-12T15:00:00Z');
 
-    const case_ = (value: string, expected: string) =>
-      expect(formatSaved(value, now, 'UTC')).toBe(expected);
-
-    case_('2026-03-12T14:59:30Z', 'Just now');
-    case_('2026-03-12T14:15:00Z', '45m');
-    case_('2026-03-12T10:00:00Z', '5h');
-    case_('2026-03-11T23:00:00Z', 'Yesterday');
-    case_('2026-03-09T12:00:00Z', 'Mon');
-    case_('2026-01-08T12:00:00Z', 'Jan 8');
-    case_('2025-11-12T12:00:00Z', 'Nov 12, 2025');
+  test.each<[string, string]>([
+    ['2026-03-12T14:59:30Z', 'Just now'],
+    ['2026-03-12T14:15:00Z', '45m'],
+    ['2026-03-12T10:00:00Z', '5h'],
+    ['2026-03-11T23:00:00Z', 'Yesterday'],
+    ['2026-03-09T12:00:00Z', 'Mon'],
+    ['2026-01-08T12:00:00Z', 'Jan 8'],
+    ['2025-11-12T12:00:00Z', 'Nov 12, 2025'],
+  ])('formats %p as %p', (value, expected) => {
+    expect(formatSaved(value, now, 'UTC')).toBe(expected);
   });
 });
 
@@ -31,27 +30,22 @@ describe('formatDate', () => {
 });
 
 describe('formatLength', () => {
-  test('joins the word count and reading time', () => {
-    const case_ = (
-      words: number | null,
-      minutes: number | null,
-      expected: string | null
-    ) => expect(formatLength(words, minutes)).toBe(expected);
-
-    case_(2840, 12, '2,840 words · 12 min');
-    case_(2840, null, '2,840 words');
-    case_(null, 12, '12 min');
-    case_(null, null, null);
+  test.each<[number | null, number | null, string | null]>([
+    [2840, 12, '2,840 words · 12 min'],
+    [2840, null, '2,840 words'],
+    [null, 12, '12 min'],
+    [null, null, null],
+  ])('formats %p words and %p minutes as %p', (words, minutes, expected) => {
+    expect(formatLength(words, minutes)).toBe(expected);
   });
 });
 
 describe('formatTimeSpent', () => {
-  test('rounds to minutes', () => {
-    const case_ = (seconds: number, expected: string | null) =>
-      expect(formatTimeSpent(seconds)).toBe(expected);
-
-    case_(0, null);
-    case_(10, '1 min spent');
-    case_(190, '3 min spent');
+  test.each<[number, string | null]>([
+    [0, null],
+    [10, '1 min spent'],
+    [190, '3 min spent'],
+  ])('formats %p seconds as %p', (seconds, expected) => {
+    expect(formatTimeSpent(seconds)).toBe(expected);
   });
 });

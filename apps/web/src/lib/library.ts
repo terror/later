@@ -1,4 +1,4 @@
-import type { Article } from './types';
+import type { Article, UpdateArticle } from '@later/types';
 
 export type View = 'inbox' | 'favorites' | 'archive';
 
@@ -53,15 +53,9 @@ export function filterArticles(
     );
 }
 
-export type ArticleUpdate = {
-  is_archived?: boolean;
-  is_favorited?: boolean;
-  is_read?: boolean;
-};
-
 export function applyUpdate<T extends Article>(
   article: T,
-  { is_read, ...fields }: ArticleUpdate,
+  { is_read, ...fields }: UpdateArticle,
   now: Date
 ): T {
   return {

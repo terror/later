@@ -1,5 +1,6 @@
+import type { Article } from '@later/types';
+
 import { formatDate } from './format';
-import type { Article } from './types';
 
 export const READ_THRESHOLD = 0.9;
 

@@ -1,9 +1,11 @@
 import type {
   Article,
   ArticleWithContent,
+  CreatedToken,
   ReadingProgress,
+  UpdateArticle,
   User,
-} from './types';
+} from '@later/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
@@ -56,7 +58,7 @@ export function getArticle(articleId: string): Promise<ArticleWithContent> {
 
 export function updateArticle(
   articleId: string,
-  update: { is_archived?: boolean; is_favorited?: boolean; is_read?: boolean }
+  update: UpdateArticle
 ): Promise<Article> {
   return request(`/articles/${articleId}`, {
     method: 'PATCH',
@@ -79,7 +81,7 @@ export function deleteArticle(articleId: string): Promise<void> {
 }
 
 export async function createToken(): Promise<string> {
-  const { token } = await request<{ token: string }>('/tokens', {
+  const { token } = await request<CreatedToken>('/tokens', {
     method: 'POST',
   });
 
