@@ -42,7 +42,7 @@ export async function mockApi(
       }
 
       if (pathname === '/api/articles' && request.method() === 'GET') {
-        return route.fulfill({ json: saved });
+        return route.fulfill({ json: { articles: saved, next_cursor: null } });
       }
 
       const progress = saved.find(
