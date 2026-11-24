@@ -1,4 +1,5 @@
 import { browser } from '#imports';
+import { Button } from '@/components/ui/button';
 import { UnauthorizedError, WEB_URL, request, token } from '@/utils/api';
 import { useEffect, useState } from 'react';
 
@@ -78,30 +79,55 @@ export default function App() {
 
   if (!connected) {
     return (
-      <main>
-        <p className='heading'>Save pages to later.</p>
-        <button type='button' className='primary' onClick={connect}>
+      <main className='flex w-[280px] flex-col gap-3 bg-white p-5 text-neutral-900 antialiased'>
+        <p className='text-[17px] font-medium tracking-[-0.02em]'>
+          Save pages to later.
+        </p>
+        <Button
+          type='button'
+          className='h-10 rounded-[10px] bg-neutral-900 text-white hover:bg-neutral-800'
+          onClick={connect}
+        >
           Connect
-        </button>
+        </Button>
       </main>
     );
   }
 
   return (
-    <main>
-      {status.kind === 'saving' && <p className='heading'>Saving…</p>}
+    <main className='flex w-[280px] flex-col gap-3 bg-white p-5 text-neutral-900 antialiased'>
+      {status.kind === 'saving' && (
+        <p className='text-[17px] font-medium tracking-[-0.02em]'>Saving…</p>
+      )}
       {status.kind === 'saved' && (
         <>
-          <p className='heading'>Saved.</p>
-          {status.title && <p className='muted'>{status.title}</p>}
+          <p className='text-[17px] font-medium tracking-[-0.02em]'>Saved.</p>
+          {status.title && (
+            <p className='truncate text-[13px] text-neutral-500'>
+              {status.title}
+            </p>
+          )}
         </>
       )}
-      {status.kind === 'error' && <p className='heading'>{status.message}</p>}
-      <footer>
-        <a href={WEB_URL} target='_blank' rel='noreferrer'>
+      {status.kind === 'error' && (
+        <p className='text-[17px] font-medium tracking-[-0.02em]'>
+          {status.message}
+        </p>
+      )}
+      <footer className='mt-1 flex justify-between text-[13px] text-neutral-500'>
+        <a
+          href={WEB_URL}
+          target='_blank'
+          rel='noreferrer'
+          className='hover:text-neutral-900'
+        >
           Open later
         </a>
-        <button type='button' className='link' onClick={disconnect}>
+        <button
+          type='button'
+          className='cursor-pointer hover:text-neutral-900'
+          onClick={disconnect}
+        >
           Disconnect
         </button>
       </footer>
