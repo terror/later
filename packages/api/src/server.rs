@@ -83,6 +83,12 @@ impl Server {
           .post(articles::save)
           .layer(DefaultBodyLimit::max(MAX_BODY_BYTES)),
       )
+      .route(
+        "/articles/{article_id}",
+        get(articles::get)
+          .patch(articles::update)
+          .delete(articles::delete),
+      )
       .route("/auth/authorized", get(auth::login_authorized))
       .route("/auth/exchange", get(auth::exchange))
       .route("/auth/login", get(auth::login))

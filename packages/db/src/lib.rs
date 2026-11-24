@@ -1,6 +1,6 @@
 use {
   chrono::{DateTime, Utc},
-  model::{Article, User},
+  model::{Article, ArticleWithContent, User},
   sqlx::{FromRow, PgPool},
   uuid::Uuid,
 };
