@@ -65,8 +65,11 @@ impl Db {
         is_favorited,
         date_saved,
         date_read,
-        content
+        content,
+        COALESCE(scroll_position, 0)::FLOAT8 AS scroll_position,
+        COALESCE(time_spent_seconds, 0) AS time_spent_seconds
       FROM articles
+      LEFT JOIN reading_progress USING (article_id, user_id)
       WHERE user_id = $1 AND article_id = $2
       "#,
       )
@@ -96,8 +99,11 @@ impl Db {
         is_archived,
         is_favorited,
         date_saved,
-        date_read
+        date_read,
+        COALESCE(scroll_position, 0)::FLOAT8 AS scroll_position,
+        COALESCE(time_spent_seconds, 0) AS time_spent_seconds
       FROM articles
+      LEFT JOIN reading_progress USING (article_id, user_id)
       WHERE user_id = $1
       ORDER BY date_saved DESC
       "#,
@@ -151,6 +157,42 @@ impl Db {
     )
   }
 
+  pub async fn save_progress(
+    &self,
+    user_id: Uuid,
+    article_id: Uuid,
+    progress: &ReadingProgress,
+  ) -> Result<Option<ReadingProgress>> {
+    Ok(
+      sqlx::query_as::<_, ReadingProgress>(
+        r#"
+      INSERT INTO reading_progress (
+        article_id,
+        user_id,
+        scroll_position,
+        time_spent_seconds
+      )
+      SELECT article_id, user_id, $3, $4
+      FROM articles
+      WHERE user_id = $1 AND article_id = $2
+      ON CONFLICT (article_id, user_id) DO UPDATE
+      SET scroll_position = EXCLUDED.scroll_position,
+        time_spent_seconds = EXCLUDED.time_spent_seconds,
+        last_read_at = NOW()
+      RETURNING
+        scroll_position::FLOAT8 AS scroll_position,
+        time_spent_seconds
+      "#,
+      )
+      .bind(user_id)
+      .bind(article_id)
+      .bind(progress.scroll_position)
+      .bind(progress.time_spent_seconds)
+      .fetch_optional(&self.pool)
+      .await?,
+    )
+  }
+
   pub async fn save_article(
     &self,
     article: &NewArticle<'_>,
@@ -166,6 +208,7 @@ impl Db {
 
     let saved = sqlx::query_as::<_, Saved>(
       r#"
+      WITH saved AS (
       INSERT INTO articles (
         user_id,
         url,
@@ -200,8 +243,10 @@ impl Db {
         reading_time_minutes = CASE WHEN EXCLUDED.content IS NULL THEN articles.reading_time_minutes ELSE EXCLUDED.reading_time_minutes END,
         is_archived = FALSE,
         date_saved = NOW()
-      RETURNING
-        (xmax = 0) AS created,
+      RETURNING (xmax = 0) AS created, *
+      )
+      SELECT
+        created,
         article_id,
         url,
         title,
@@ -216,7 +261,11 @@ impl Db {
         is_archived,
         is_favorited,
         date_saved,
-        date_read
+        date_read,
+        COALESCE(scroll_position, 0)::FLOAT8 AS scroll_position,
+        COALESCE(time_spent_seconds, 0) AS time_spent_seconds
+      FROM saved
+      LEFT JOIN reading_progress USING (article_id, user_id)
       "#,
     )
     .bind(article.user_id)
@@ -246,15 +295,23 @@ impl Db {
     article_id: Uuid,
     is_archived: Option<bool>,
     is_favorited: Option<bool>,
+    is_read: Option<bool>,
   ) -> Result<Option<Article>> {
     Ok(
       sqlx::query_as::<_, Article>(
         r#"
+      WITH updated AS (
       UPDATE articles
       SET is_archived = COALESCE($3, is_archived),
-        is_favorited = COALESCE($4, is_favorited)
+        is_favorited = COALESCE($4, is_favorited),
+        date_read = CASE
+          WHEN $5 IS NULL THEN date_read
+          WHEN $5 THEN COALESCE(date_read, NOW())
+        END
       WHERE user_id = $1 AND article_id = $2
-      RETURNING
+      RETURNING *
+      )
+      SELECT
         article_id,
         url,
         title,
@@ -269,13 +326,18 @@ impl Db {
         is_archived,
         is_favorited,
         date_saved,
-        date_read
+        date_read,
+        COALESCE(scroll_position, 0)::FLOAT8 AS scroll_position,
+        COALESCE(time_spent_seconds, 0) AS time_spent_seconds
+      FROM updated
+      LEFT JOIN reading_progress USING (article_id, user_id)
       "#,
       )
       .bind(user_id)
       .bind(article_id)
       .bind(is_archived)
       .bind(is_favorited)
+      .bind(is_read)
       .fetch_optional(&self.pool)
       .await?,
     )
@@ -449,7 +511,7 @@ mod tests {
     );
 
     let updated = db
-      .update_article(user.user_id, article.article_id, Some(true), None)
+      .update_article(user.user_id, article.article_id, Some(true), None, None)
       .await
       .unwrap();
 
@@ -462,9 +524,15 @@ mod tests {
     );
 
     assert_eq!(
-      db.update_article(other.user_id, article.article_id, Some(false), None)
-        .await
-        .unwrap(),
+      db.update_article(
+        other.user_id,
+        article.article_id,
+        Some(false),
+        None,
+        None
+      )
+      .await
+      .unwrap(),
       None,
     );
 
@@ -485,6 +553,128 @@ mod tests {
       db.article(user.user_id, article.article_id).await.unwrap(),
       None,
     );
+  }
+
+  #[tokio::test(flavor = "multi_thread")]
+  async fn read() {
+    let TestContext { db, .. } = TestContext::new().await;
+
+    let user = db.upsert_user("foo@bar.com", None).await.unwrap();
+
+    let (article, _) = db
+      .save_article(&new_article(user.user_id, None))
+      .await
+      .unwrap();
+
+    let read = db
+      .update_article(user.user_id, article.article_id, None, None, Some(true))
+      .await
+      .unwrap()
+      .unwrap();
+
+    assert!(read.date_read.is_some());
+
+    assert_eq!(
+      read,
+      Article {
+        date_read: read.date_read,
+        ..article.clone()
+      },
+    );
+
+    assert_eq!(
+      db.update_article(
+        user.user_id,
+        article.article_id,
+        None,
+        None,
+        Some(true)
+      )
+      .await
+      .unwrap(),
+      Some(read),
+    );
+
+    assert_eq!(
+      db.update_article(
+        user.user_id,
+        article.article_id,
+        None,
+        None,
+        Some(false)
+      )
+      .await
+      .unwrap(),
+      Some(article),
+    );
+  }
+
+  #[tokio::test(flavor = "multi_thread")]
+  async fn save_progress() {
+    let TestContext { db, .. } = TestContext::new().await;
+
+    let user = db.upsert_user("foo@bar.com", None).await.unwrap();
+
+    let other = db.upsert_user("bar@baz.com", None).await.unwrap();
+
+    let (article, _) = db
+      .save_article(&new_article(user.user_id, None))
+      .await
+      .unwrap();
+
+    assert_eq!(
+      article.progress,
+      ReadingProgress {
+        scroll_position: 0.0,
+        time_spent_seconds: 0,
+      },
+    );
+
+    let progress = ReadingProgress {
+      scroll_position: 0.25,
+      time_spent_seconds: 10,
+    };
+
+    assert_eq!(
+      db.save_progress(other.user_id, article.article_id, &progress)
+        .await
+        .unwrap(),
+      None,
+    );
+
+    assert_eq!(
+      db.save_progress(user.user_id, article.article_id, &progress)
+        .await
+        .unwrap(),
+      Some(progress.clone()),
+    );
+
+    let progress = ReadingProgress {
+      scroll_position: 0.5,
+      time_spent_seconds: 20,
+    };
+
+    assert_eq!(
+      db.save_progress(user.user_id, article.article_id, &progress)
+        .await
+        .unwrap(),
+      Some(progress.clone()),
+    );
+
+    let article = Article {
+      progress,
+      ..article
+    };
+
+    assert_eq!(
+      db.article(user.user_id, article.article_id).await.unwrap(),
+      Some(ArticleWithContent {
+        article: article.clone(),
+        content: None,
+      }),
+    );
+
+    assert_eq!(db.articles(user.user_id).await.unwrap(), vec![article]);
   }
 
   #[tokio::test(flavor = "multi_thread")]

@@ -1,4 +1,9 @@
-import type { Article, ArticleWithContent, User } from './types';
+import type {
+  Article,
+  ArticleWithContent,
+  ReadingProgress,
+  User,
+} from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
@@ -51,11 +56,21 @@ export function getArticle(articleId: string): Promise<ArticleWithContent> {
 
 export function updateArticle(
   articleId: string,
-  update: { is_archived?: boolean; is_favorited?: boolean }
+  update: { is_archived?: boolean; is_favorited?: boolean; is_read?: boolean }
 ): Promise<Article> {
   return request(`/articles/${articleId}`, {
     method: 'PATCH',
     body: JSON.stringify(update),
+  });
+}
+
+export function saveProgress(
+  articleId: string,
+  progress: ReadingProgress
+): Promise<ReadingProgress> {
+  return request(`/articles/${articleId}/progress`, {
+    method: 'PUT',
+    body: JSON.stringify(progress),
   });
 }
 

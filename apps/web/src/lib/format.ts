@@ -70,6 +70,12 @@ export function formatSaved(
   }).format(date);
 }
 
+export function formatTimeSpent(seconds: number): string | null {
+  return seconds === 0
+    ? null
+    : `${Math.max(1, Math.round(seconds / 60))} min spent`;
+}
+
 export function formatLength(
   words: number | null,
   minutes: number | null

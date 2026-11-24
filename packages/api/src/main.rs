@@ -12,7 +12,7 @@ use {
       Path, Query, State as AppState,
     },
     response::{IntoResponse, Redirect, Response},
-    routing::{get, post},
+    routing::{get, post, put},
   },
   axum_extra::{
     TypedHeader,

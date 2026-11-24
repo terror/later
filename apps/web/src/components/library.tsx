@@ -51,6 +51,7 @@ export function Library({
   now = new Date(),
   onToggleFavorite,
   onToggleArchive,
+  onToggleRead,
   onDelete,
 }: {
   articles: Article[] | null;
@@ -60,6 +61,7 @@ export function Library({
   now?: Date;
   onToggleFavorite: (article: Article) => void;
   onToggleArchive: (article: Article) => void;
+  onToggleRead: (article: Article) => void;
   onDelete: (article: Article) => void;
 }) {
   const [view, setView] = useState<View>('inbox');
@@ -193,6 +195,7 @@ export function Library({
           article={active}
           onToggleFavorite={() => onToggleFavorite(active)}
           onToggleArchive={() => onToggleArchive(active)}
+          onToggleRead={() => onToggleRead(active)}
           onDelete={() => onDelete(active)}
         />
       )}

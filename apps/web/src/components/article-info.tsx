@@ -1,12 +1,16 @@
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { SiteTile } from '@/components/ui/site-tile';
-import { formatDate, formatLength } from '@/lib/format';
+import { formatDate, formatLength, formatTimeSpent } from '@/lib/format';
+import { readingStatus } from '@/lib/reading';
 import type { Article } from '@/lib/types';
 import { articleSource, cn } from '@/lib/utils';
 import {
   Archive,
   ArchiveRestore,
   BookOpen,
+  Circle,
+  CircleCheck,
   ExternalLink,
   Star,
   Trash2,
@@ -17,6 +21,7 @@ export function ArticleInfo({
   article,
   onToggleFavorite,
   onToggleArchive,
+  onToggleRead,
   onDelete,
   showRead = true,
   className,
@@ -24,11 +29,16 @@ export function ArticleInfo({
   article: Article;
   onToggleFavorite: () => void;
   onToggleArchive: () => void;
+  onToggleRead: () => void;
   onDelete: () => void;
   showRead?: boolean;
   className?: string;
 }) {
   const source = articleSource(article);
+
+  const read = article.date_read !== null;
+
+  const timeSpent = formatTimeSpent(article.progress.time_spent_seconds);
 
   const details = [
     ['Author', article.author],
@@ -72,6 +82,22 @@ export function ArticleInfo({
           </div>
         ))}
       </dl>
+      <div className='bg-background flex flex-col gap-3 rounded-xl p-3.5 text-[13px]'>
+        <div className='flex justify-between gap-3'>
+          <span>{readingStatus(article)}</span>
+          {timeSpent && (
+            <span className='text-muted-foreground'>{timeSpent}</span>
+          )}
+        </div>
+        <Progress
+          value={read ? 1 : article.progress.scroll_position}
+          aria-label='Reading progress'
+        />
+        <Button variant='secondary' size='sm' onClick={onToggleRead}>
+          {read ? <Circle /> : <CircleCheck />}
+          {read ? 'Mark as unread' : 'Mark as read'}
+        </Button>
+      </div>
       <div className='flex gap-2'>
         {showRead && (
           <Button asChild className='flex-1'>
