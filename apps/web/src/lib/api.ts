@@ -1,4 +1,4 @@
-import type { User } from './types';
+import type { Article, ArticleWithContent, User } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
@@ -25,4 +25,48 @@ export function getLoginUrl(): string {
 
 export function getLogoutUrl(): string {
   return `/auth/logout?redirect=${encodeURIComponent(window.location.href)}`;
+}
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const response = await fetch(`/api${path}`, {
+    ...init,
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...init.headers },
+  });
+
+  if (!response.ok) {
+    throw new Error(`request to ${path} failed: ${response.status}`);
+  }
+
+  return response.status === 204 ? (undefined as T) : response.json();
+}
+
+export function getArticles(): Promise<Article[]> {
+  return request('/articles');
+}
+
+export function getArticle(articleId: string): Promise<ArticleWithContent> {
+  return request(`/articles/${articleId}`);
+}
+
+export function updateArticle(
+  articleId: string,
+  update: { is_archived?: boolean; is_favorited?: boolean }
+): Promise<Article> {
+  return request(`/articles/${articleId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(update),
+  });
+}
+
+export function deleteArticle(articleId: string): Promise<void> {
+  return request(`/articles/${articleId}`, { method: 'DELETE' });
+}
+
+export async function createToken(): Promise<string> {
+  const { token } = await request<{ token: string }>('/tokens', {
+    method: 'POST',
+  });
+
+  return token;
 }

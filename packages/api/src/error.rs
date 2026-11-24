@@ -12,6 +12,28 @@ impl Display for BadRequest {
 impl std::error::Error for BadRequest {}
 
 #[derive(Debug)]
+pub(crate) struct NotFound;
+
+impl Display for NotFound {
+  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    write!(f, "not found")
+  }
+}
+
+impl std::error::Error for NotFound {}
+
+#[derive(Debug)]
+pub(crate) struct Unauthorized;
+
+impl Display for Unauthorized {
+  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    write!(f, "unauthorized")
+  }
+}
+
+impl std::error::Error for Unauthorized {}
+
+#[derive(Debug)]
 pub(crate) struct Error(pub(crate) anyhow::Error);
 
 impl Display for Error {
@@ -33,6 +55,10 @@ impl IntoResponse for Error {
   fn into_response(self) -> Response {
     let status = if self.0.is::<BadRequest>() {
       StatusCode::BAD_REQUEST
+    } else if self.0.is::<NotFound>() {
+      StatusCode::NOT_FOUND
+    } else if self.0.is::<Unauthorized>() {
+      StatusCode::UNAUTHORIZED
     } else {
       StatusCode::INTERNAL_SERVER_ERROR
     };

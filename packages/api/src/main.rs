@@ -1,27 +1,30 @@
 use {
   allowed_origins::AllowedOrigins,
   anyhow::{Context, anyhow},
+  api_token::ApiToken,
   async_session::{Session, SessionStore, async_trait, serde_json},
-  auth::{COOKIE_NAME, Unauthorized},
+  auth::COOKIE_NAME,
   axum::{
     Json, RequestPartsExt, Router,
     body::Body,
     extract::{
       DefaultBodyLimit, FromRef, FromRequestParts, OptionalFromRequestParts,
-      Query, State as AppState,
+      Path, Query, State as AppState,
     },
     response::{IntoResponse, Redirect, Response},
-    routing::get,
+    routing::{get, post},
   },
   axum_extra::{
-    TypedHeader, headers, typed_header::TypedHeaderRejectionReason,
+    TypedHeader,
+    headers::{self, Authorization, authorization::Bearer},
+    typed_header::TypedHeaderRejectionReason,
   },
   chrono::{DateTime, Utc},
   clap::Parser,
   db::{ArticleContent, Db, NewArticle},
   documentation::Documentation,
   dotenv::dotenv,
-  error::{BadRequest, Error},
+  error::{BadRequest, Error, NotFound, Unauthorized},
   http::{
     HeaderMap, Request, StatusCode,
     header::{self, SET_COOKIE, USER_AGENT},
@@ -38,9 +41,10 @@ use {
   },
   redis_session_store::RedisSessionStore,
   reqwest::Url,
-  serde::Deserialize,
+  serde::{Deserialize, Serialize},
   serde_json::Value,
   server::Server,
+  sha2::{Digest, Sha256},
   state::State,
   std::{
     backtrace::BacktraceStatus,
@@ -79,9 +83,11 @@ use {
     },
   },
   utoipa_scalar::{Scalar, Servable},
+  uuid::Uuid,
 };
 
 mod allowed_origins;
+mod api_token;
 mod articles;
 mod auth;
 mod documentation;
@@ -90,6 +96,7 @@ mod extraction;
 mod redis_session_store;
 mod server;
 mod state;
+mod tokens;
 mod user;
 
 type Result<T = (), E = Error> = std::result::Result<T, E>;

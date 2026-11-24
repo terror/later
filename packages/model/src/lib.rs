@@ -7,6 +7,9 @@ use {
 };
 
 mod article;
+mod article_with_content;
 mod user;
 
-pub use {article::Article, user::User};
+pub use {
+  article::Article, article_with_content::ArticleWithContent, user::User,
+};

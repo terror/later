@@ -17,6 +17,66 @@ impl Db {
     Ok(Self { pool })
   }
 
+  pub async fn api_token_user(
+    &self,
+    token_hash: &[u8],
+  ) -> Result<Option<User>> {
+    Ok(
+      sqlx::query_as::<_, User>(
+        r#"
+      SELECT
+        users.user_id,
+        users.email,
+        users.name,
+        users.created_at,
+        users.updated_at
+      FROM api_tokens
+      JOIN users ON users.user_id = api_tokens.user_id
+      WHERE api_tokens.token_hash = $1
+      "#,
+      )
+      .bind(token_hash)
+      .fetch_optional(&self.pool)
+      .await?,
+    )
+  }
+
+  pub async fn article(
+    &self,
+    user_id: Uuid,
+    article_id: Uuid,
+  ) -> Result<Option<ArticleWithContent>> {
+    Ok(
+      sqlx::query_as::<_, ArticleWithContent>(
+        r#"
+      SELECT
+        article_id,
+        url,
+        title,
+        author,
+        excerpt,
+        site_name,
+        lang,
+        dir,
+        publication_date,
+        word_count,
+        reading_time_minutes,
+        is_archived,
+        is_favorited,
+        date_saved,
+        date_read,
+        content
+      FROM articles
+      WHERE user_id = $1 AND article_id = $2
+      "#,
+      )
+      .bind(user_id)
+      .bind(article_id)
+      .fetch_optional(&self.pool)
+      .await?,
+    )
+  }
+
   pub async fn articles(&self, user_id: Uuid) -> Result<Vec<Article>> {
     Ok(
       sqlx::query_as::<_, Article>(
@@ -45,6 +105,49 @@ impl Db {
       .bind(user_id)
       .fetch_all(&self.pool)
       .await?,
+    )
+  }
+
+  pub async fn create_api_token(
+    &self,
+    user_id: Uuid,
+    token_hash: &[u8],
+  ) -> Result {
+    sqlx::query("INSERT INTO api_tokens (user_id, token_hash) VALUES ($1, $2)")
+      .bind(user_id)
+      .bind(token_hash)
+      .execute(&self.pool)
+      .await?;
+
+    Ok(())
+  }
+
+  pub async fn delete_api_token(&self, token_hash: &[u8]) -> Result<bool> {
+    Ok(
+      sqlx::query("DELETE FROM api_tokens WHERE token_hash = $1")
+        .bind(token_hash)
+        .execute(&self.pool)
+        .await?
+        .rows_affected()
+        > 0,
+    )
+  }
+
+  pub async fn delete_article(
+    &self,
+    user_id: Uuid,
+    article_id: Uuid,
+  ) -> Result<bool> {
+    Ok(
+      sqlx::query(
+        "DELETE FROM articles WHERE user_id = $1 AND article_id = $2",
+      )
+      .bind(user_id)
+      .bind(article_id)
+      .execute(&self.pool)
+      .await?
+      .rows_affected()
+        > 0,
     )
   }
 
@@ -135,6 +238,47 @@ impl Db {
     .await?;
 
     Ok((saved.article, saved.created))
+  }
+
+  pub async fn update_article(
+    &self,
+    user_id: Uuid,
+    article_id: Uuid,
+    is_archived: Option<bool>,
+    is_favorited: Option<bool>,
+  ) -> Result<Option<Article>> {
+    Ok(
+      sqlx::query_as::<_, Article>(
+        r#"
+      UPDATE articles
+      SET is_archived = COALESCE($3, is_archived),
+        is_favorited = COALESCE($4, is_favorited)
+      WHERE user_id = $1 AND article_id = $2
+      RETURNING
+        article_id,
+        url,
+        title,
+        author,
+        excerpt,
+        site_name,
+        lang,
+        dir,
+        publication_date,
+        word_count,
+        reading_time_minutes,
+        is_archived,
+        is_favorited,
+        date_saved,
+        date_read
+      "#,
+      )
+      .bind(user_id)
+      .bind(article_id)
+      .bind(is_archived)
+      .bind(is_favorited)
+      .fetch_optional(&self.pool)
+      .await?,
+    )
   }
 
   pub async fn upsert_user(
@@ -257,6 +401,90 @@ mod tests {
       title: Some("foo".into()),
       word_count: 1,
     }
+  }
+
+  #[tokio::test(flavor = "multi_thread")]
+  async fn api_tokens() {
+    let TestContext { db, .. } = TestContext::new().await;
+
+    let user = db.upsert_user("foo@bar.com", None).await.unwrap();
+
+    assert_eq!(db.api_token_user(b"foo").await.unwrap(), None);
+
+    db.create_api_token(user.user_id, b"foo").await.unwrap();
+
+    assert_eq!(db.api_token_user(b"foo").await.unwrap(), Some(user));
+
+    assert!(db.delete_api_token(b"foo").await.unwrap());
+
+    assert!(!db.delete_api_token(b"foo").await.unwrap());
+
+    assert_eq!(db.api_token_user(b"foo").await.unwrap(), None);
+  }
+
+  #[tokio::test(flavor = "multi_thread")]
+  async fn article() {
+    let TestContext { db, .. } = TestContext::new().await;
+
+    let user = db.upsert_user("foo@bar.com", None).await.unwrap();
+
+    let other = db.upsert_user("bar@baz.com", None).await.unwrap();
+
+    let (article, _) = db
+      .save_article(&new_article(user.user_id, Some(content())))
+      .await
+      .unwrap();
+
+    assert_eq!(
+      db.article(user.user_id, article.article_id).await.unwrap(),
+      Some(ArticleWithContent {
+        article: article.clone(),
+        content: Some("<p>baz</p>".into()),
+      }),
+    );
+
+    assert_eq!(
+      db.article(other.user_id, article.article_id).await.unwrap(),
+      None,
+    );
+
+    let updated = db
+      .update_article(user.user_id, article.article_id, Some(true), None)
+      .await
+      .unwrap();
+
+    assert_eq!(
+      updated,
+      Some(Article {
+        is_archived: true,
+        ..article.clone()
+      }),
+    );
+
+    assert_eq!(
+      db.update_article(other.user_id, article.article_id, Some(false), None)
+        .await
+        .unwrap(),
+      None,
+    );
+
+    assert!(
+      !db
+        .delete_article(other.user_id, article.article_id)
+        .await
+        .unwrap()
+    );
+
+    assert!(
+      db.delete_article(user.user_id, article.article_id)
+        .await
+        .unwrap()
+    );
+
+    assert_eq!(
+      db.article(user.user_id, article.article_id).await.unwrap(),
+      None,
+    );
   }
 
   #[tokio::test(flavor = "multi_thread")]
