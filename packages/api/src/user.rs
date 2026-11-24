@@ -19,6 +19,7 @@ impl From<User> for model::User {
 
 impl<S> OptionalFromRequestParts<S> for User
 where
+  Db: FromRef<S>,
   RedisSessionStore: FromRef<S>,
   S: Send + Sync,
 {
@@ -38,15 +39,31 @@ where
 
 impl<S> FromRequestParts<S> for User
 where
+  Db: FromRef<S>,
   RedisSessionStore: FromRef<S>,
   S: Send + Sync,
 {
-  type Rejection = Unauthorized;
+  type Rejection = Error;
 
   async fn from_request_parts(
     parts: &mut Parts,
     state: &S,
   ) -> Result<Self, Self::Rejection> {
+    let authorization = parts
+      .extract::<Option<TypedHeader<Authorization<Bearer>>>>()
+      .await
+      .map_err(|_| Unauthorized)?;
+
+    if let Some(TypedHeader(Authorization(bearer))) = authorization {
+      let user = Db::from_ref(state)
+        .api_token_user(&ApiToken::hash(bearer.token()))
+        .await
+        .context("failed to load API token")?
+        .ok_or(Unauthorized)?;
+
+      return Ok(User(user));
+    }
+
     let store = RedisSessionStore::from_ref(state);
 
     let cookies = parts

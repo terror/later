@@ -1,6 +1,8 @@
 use super::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, FromRow)]
+#[derive(
+  Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema, FromRow,
+)]
 pub struct User {
   /// Unique identifier for the user.
   pub user_id: Uuid,
