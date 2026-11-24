@@ -188,6 +188,9 @@ export default function LandingPage() {
           <a href={REPOSITORY_URL} className='hover:text-foreground'>
             GitHub
           </a>
+          <Link to='/privacy' className='hover:text-foreground'>
+            Privacy
+          </Link>
           <Link to='/sign-in' className='hover:text-foreground'>
             Sign in
           </Link>

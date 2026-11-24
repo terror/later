@@ -9,4 +9,4 @@ which rg
   --ignore-case \
   --glob !bin/forbid \
   --glob !bun.lock \
-  'dbg!|fixme|todo|xxx'
+  'dbg!|\bfixme\b|\btodo\b|\bxxx\b'
