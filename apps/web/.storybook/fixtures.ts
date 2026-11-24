@@ -118,6 +118,15 @@ export const articles: Article[] = [
   }),
 ];
 
+export const library: Article[] = Array.from({ length: 36 }, (_, index) => ({
+  ...articles[index % articles.length],
+  article_id: `00000000-0000-0000-0000-${String(index + 200).padStart(12, '0')}`,
+  is_archived: false,
+  date_saved: new Date(
+    Date.parse('2026-03-12T13:00:00Z') - index * 9 * 60 * 60 * 1000
+  ).toISOString(),
+}));
+
 export const reading: ArticleWithContent = {
   ...articles[0],
   content:

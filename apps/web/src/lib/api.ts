@@ -1,9 +1,11 @@
 import type {
   Article,
+  ArticlePage,
   ArticleWithContent,
   CreateHighlight,
   CreatedToken,
   Highlight,
+  ListArticles,
   ReadingProgress,
   UpdateArticle,
   UpdateHighlight,
@@ -51,8 +53,21 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return response.status === 204 ? (undefined as T) : response.json();
 }
 
-export function getArticles(): Promise<Article[]> {
-  return request('/articles');
+export function getArticles({
+  cursor,
+  limit,
+}: ListArticles): Promise<ArticlePage> {
+  const search = new URLSearchParams();
+
+  if (cursor !== undefined) {
+    search.set('cursor', cursor);
+  }
+
+  if (limit !== undefined) {
+    search.set('limit', String(limit));
+  }
+
+  return request(search.size === 0 ? '/articles' : `/articles?${search}`);
 }
 
 export function getArticle(articleId: string): Promise<ArticleWithContent> {

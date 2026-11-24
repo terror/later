@@ -44,6 +44,13 @@ impl Server {
 
     let oauth_client = auth::oauth_client()?;
 
+    let trusted_proxies = env::var("TRUSTED_PROXIES")
+      .ok()
+      .map(|value| value.parse::<usize>())
+      .transpose()
+      .context("TRUSTED_PROXIES must be a non-negative integer")?
+      .unwrap_or_default();
+
     let allowed_origins = AllowedOrigins::new(
       &env::var("ALLOWED_ORIGINS")
         .unwrap_or_else(|_| "http://localhost:5173".into()),
@@ -60,6 +67,7 @@ impl Server {
       GovernorConfigBuilder::default()
         .per_second(10)
         .burst_size(100)
+        .key_extractor(RateLimitKeyExtractor { trusted_proxies })
         .use_headers()
         .finish()
         .ok_or(anyhow!("failed to build governor config"))?,
@@ -75,6 +83,33 @@ impl Server {
         governor_limiter.retain_recent();
       }
     });
+
+    Ok(Self::service(state, governor_config))
+  }
+
+  pub(crate) fn service(
+    state: State,
+    governor_config: Arc<
+      GovernorConfig<RateLimitKeyExtractor, StateInformationMiddleware>,
+    >,
+  ) -> Router {
+    let allowed_origins = state.allowed_origins.clone();
+
+    let cors = CorsLayer::new()
+      .allow_origin(AllowOrigin::predicate(move |origin, _| {
+        origin
+          .to_str()
+          .is_ok_and(|origin| allowed_origins.allows(origin))
+      }))
+      .allow_credentials(true)
+      .allow_methods([
+        Method::GET,
+        Method::POST,
+        Method::PUT,
+        Method::PATCH,
+        Method::DELETE,
+      ])
+      .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE]);
 
     let trace_layer = TraceLayer::new_for_http()
       .make_span_with(|request: &Request<Body>| {
@@ -110,12 +145,14 @@ impl Server {
       .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
       .layer(trace_layer)
       .layer(PropagateRequestIdLayer::x_request_id())
-      .layer(CorsLayer::very_permissive())
-      .layer(GovernorLayer::new(Arc::clone(&governor_config)));
+      .layer(cors)
+      .layer(middleware::from_fn_with_state(
+        state.clone(),
+        rate_limit::authenticate,
+      ))
+      .layer(GovernorLayer::new(governor_config));
 
-    let router = Self::router().with_state(state).layer(middleware);
-
-    Ok(router)
+    Self::router().with_state(state).layer(middleware)
   }
 
   pub(crate) fn router() -> Router<State> {
@@ -151,5 +188,210 @@ impl Server {
       .route("/auth/session", get(auth::session))
       .route("/tokens", post(tokens::create).delete(tokens::delete))
       .merge(Scalar::with_url("/", Documentation::openapi()))
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn get(uri: &str) -> Request<Body> {
+    Request::get(uri).body(Body::empty()).unwrap()
+  }
+
+  fn with_header(
+    mut request: Request<Body>,
+    name: &'static str,
+    value: &str,
+  ) -> Request<Body> {
+    request.headers_mut().insert(name, value.parse().unwrap());
+    request
+  }
+
+  #[tokio::test(flavor = "multi_thread")]
+  async fn errors() {
+    let context = TestContext::new().await;
+
+    let (_, authorization) = context.user("foo@bar.com").await;
+
+    let requests = [
+      get("/articles"),
+      with_header(get("/articles"), "cookie", "SESSION=foo"),
+      with_header(get("/articles"), "cookie", "SESSION=Zm9v"),
+      with_header(get("/articles"), "authorization", "Bearer foo"),
+      with_header(get("/articles"), "authorization", "foo"),
+      with_header(get("/articles?limit=0"), "authorization", &authorization),
+      with_header(get("/articles?cursor=foo"), "authorization", &authorization),
+      Request::delete("/tokens").body(Body::empty()).unwrap(),
+      get("/auth/exchange?code=foo"),
+      get("/auth/login?redirect=https://bar.com/"),
+      with_header(
+        get("/auth/authorized?code=foo&state=bar"),
+        "cookie",
+        "foo=bar",
+      ),
+      with_header(
+        get("/auth/authorized?code=foo&state=bar"),
+        "cookie",
+        "SESSION=foo",
+      ),
+    ];
+
+    let mut responses = Vec::new();
+
+    for request in requests {
+      responses.push(context.status_and_body(request).await);
+    }
+
+    let unauthorized = (StatusCode::UNAUTHORIZED, "error: unauthorized".into());
+
+    let bad_request =
+      |message: &str| (StatusCode::BAD_REQUEST, format!("error: {message}"));
+
+    assert_eq!(
+      responses,
+      [
+        unauthorized.clone(),
+        unauthorized.clone(),
+        unauthorized.clone(),
+        unauthorized.clone(),
+        unauthorized.clone(),
+        bad_request("limit must be between 1 and 100"),
+        bad_request("invalid cursor `foo`"),
+        unauthorized,
+        bad_request("invalid or expired code"),
+        bad_request("redirect origin `https://bar.com` is not allowed"),
+        bad_request("missing session cookie"),
+        bad_request("session not found"),
+      ],
+    );
+  }
+
+  #[tokio::test(flavor = "multi_thread")]
+  async fn login_and_logout() {
+    let context = TestContext::new().await;
+
+    let response = context.send(get("/auth/login")).await;
+
+    let cookie = response.headers()[SET_COOKIE].to_str().unwrap().to_string();
+
+    let (session, attributes) = cookie.split_once("; ").unwrap();
+
+    assert_eq!(attributes, "SameSite=Lax; HttpOnly; Path=/; Max-Age=600");
+
+    assert_eq!(
+      context
+        .status_and_body(with_header(
+          get("/auth/authorized?code=foo&state=bar"),
+          "cookie",
+          session,
+        ))
+        .await,
+      (StatusCode::BAD_REQUEST, "error: CSRF token mismatch".into()),
+    );
+
+    let response = context
+      .send(with_header(get("/auth/logout"), "cookie", session))
+      .await;
+
+    assert_eq!(
+      (
+        response.status(),
+        response.headers()[SET_COOKIE].to_str().unwrap(),
+        response.headers()[header::LOCATION].to_str().unwrap(),
+      ),
+      (
+        StatusCode::SEE_OTHER,
+        "SESSION=; SameSite=Lax; HttpOnly; Path=/; Max-Age=0",
+        "/",
+      ),
+    );
+  }
+
+  #[tokio::test(flavor = "multi_thread")]
+  async fn cors() {
+    let context = TestContext::new().await;
+
+    let preflight = |origin: &str| {
+      Request::options("/articles")
+        .header(header::ORIGIN, origin)
+        .header(header::ACCESS_CONTROL_REQUEST_METHOD, "DELETE")
+        .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "authorization")
+        .body(Body::empty())
+        .unwrap()
+    };
+
+    let mut headers = Vec::new();
+
+    for origin in ["https://foo.com", "https://bar.com"] {
+      let response = context.send(preflight(origin)).await;
+
+      headers.push(
+        [
+          header::ACCESS_CONTROL_ALLOW_ORIGIN,
+          header::ACCESS_CONTROL_ALLOW_CREDENTIALS,
+          header::ACCESS_CONTROL_ALLOW_METHODS,
+          header::ACCESS_CONTROL_ALLOW_HEADERS,
+        ]
+        .map(|name| {
+          response
+            .headers()
+            .get(name)
+            .map(|value| value.to_str().unwrap().to_string())
+        }),
+      );
+    }
+
+    assert_eq!(
+      headers,
+      [
+        [
+          Some("https://foo.com".into()),
+          Some("true".into()),
+          Some("GET,POST,PUT,PATCH,DELETE".into()),
+          Some("authorization,content-type".into()),
+        ],
+        [
+          None,
+          Some("true".into()),
+          Some("GET,POST,PUT,PATCH,DELETE".into()),
+          Some("authorization,content-type".into()),
+        ],
+      ],
+    );
+  }
+
+  #[tokio::test(flavor = "multi_thread")]
+  async fn rate_limit() {
+    let context = TestContext::with_burst_size(1).await;
+
+    let (_, foo) = context.user("foo@bar.com").await;
+
+    let (_, bar) = context.user("bar@baz.com").await;
+
+    let requests = [
+      with_header(get("/auth/session"), "authorization", &foo),
+      with_header(get("/auth/session"), "authorization", &foo),
+      with_header(get("/auth/session"), "authorization", &bar),
+      get("/auth/session"),
+      get("/auth/session"),
+    ];
+
+    let mut statuses = Vec::new();
+
+    for request in requests {
+      statuses.push(context.send(request).await.status());
+    }
+
+    assert_eq!(
+      statuses,
+      [
+        StatusCode::OK,
+        StatusCode::TOO_MANY_REQUESTS,
+        StatusCode::OK,
+        StatusCode::UNAUTHORIZED,
+        StatusCode::TOO_MANY_REQUESTS,
+      ],
+    );
   }
 }

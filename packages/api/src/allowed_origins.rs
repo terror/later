@@ -44,13 +44,20 @@ impl AllowedOrigins {
     )
   }
 
+  pub(crate) fn allows(&self, origin: &str) -> bool {
+    self.0.iter().any(|pattern| pattern.matches(origin))
+  }
+
   pub(crate) fn validate(&self, redirect: &str) -> Result<Url> {
-    let url = Url::parse(redirect).context("invalid redirect URL")?;
+    let url = Url::parse(redirect)
+      .map_err(|_| BadRequest("invalid redirect URL".into()))?;
 
     let origin = url.origin().ascii_serialization();
 
-    if !self.0.iter().any(|pattern| pattern.matches(&origin)) {
-      return Err(anyhow!("redirect origin `{origin}` is not allowed").into());
+    if !self.allows(&origin) {
+      return Err(
+        BadRequest(format!("redirect origin `{origin}` is not allowed")).into(),
+      );
     }
 
     Ok(url)

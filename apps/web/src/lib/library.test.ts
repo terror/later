@@ -5,6 +5,7 @@ import {
   applyUpdate,
   countArticles,
   filterArticles,
+  mapPages,
   patchArticle,
   removeArticle,
 } from './library';
@@ -117,6 +118,32 @@ describe('applyUpdate', () => {
   ])('applies %p with %p', (fields, update, expected) => {
     expect(applyUpdate(article(fields), update, now)).toEqual(
       article(expected)
+    );
+  });
+});
+
+describe('mapPages', () => {
+  test.each([
+    {
+      data: {
+        pages: [
+          { articles: articles.slice(0, 2), next_cursor: 'foo' },
+          { articles: articles.slice(2), next_cursor: null },
+        ],
+        pageParams: [null, 'foo'],
+      },
+      expected: {
+        pages: [
+          { articles: [articles[0]], next_cursor: 'foo' },
+          { articles: [articles[2]], next_cursor: null },
+        ],
+        pageParams: [null, 'foo'],
+      },
+    },
+    { data: undefined, expected: undefined },
+  ])('removes articles from every page of $data', ({ data, expected }) => {
+    expect(mapPages(data, (articles) => removeArticle(articles, 'b'))).toEqual(
+      expected
     );
   });
 });

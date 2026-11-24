@@ -9,16 +9,16 @@ use {
     Json, RequestPartsExt, Router,
     body::Body,
     extract::{
-      DefaultBodyLimit, FromRef, FromRequestParts, OptionalFromRequestParts,
-      Path, Query, State as AppState,
+      ConnectInfo, DefaultBodyLimit, FromRef, FromRequestParts,
+      OptionalFromRequestParts, Path, Query, State as AppState,
     },
+    middleware::{self, Next},
     response::{IntoResponse, Redirect, Response},
     routing::{get, patch, post, put},
   },
   axum_extra::{
     TypedHeader,
     headers::{self, Authorization, authorization::Bearer},
-    typed_header::TypedHeaderRejectionReason,
   },
   chrono::{DateTime, Utc},
   clap::Parser,
@@ -26,8 +26,9 @@ use {
   documentation::Documentation,
   dotenv::dotenv,
   error::{BadRequest, Error, NotFound, Unauthorized},
+  governor::middleware::StateInformationMiddleware,
   http::{
-    HeaderMap, Request, StatusCode,
+    HeaderMap, Method, Request, StatusCode,
     header::{self, SET_COOKIE, USER_AGENT},
     request::Parts,
   },
@@ -35,6 +36,7 @@ use {
     AuthUrl, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope,
     TokenResponse, TokenUrl, basic::BasicClient as OAuth2BasicClient,
   },
+  rate_limit::RateLimitKeyExtractor,
   readability::{Readability, ReadabilityOptions},
   redis::{
     AsyncCommands, Client, IntoConnectionInfo, RedisResult,
@@ -53,19 +55,24 @@ use {
     convert::Infallible,
     env,
     fmt::{self, Debug, Display, Formatter},
-    net::SocketAddr,
+    net::{IpAddr, SocketAddr},
     ops::Deref,
     process,
+    str::FromStr,
     sync::{Arc, LazyLock},
     thread,
     time::Duration,
   },
   tokio::{net::TcpListener, task},
   tower::ServiceBuilder,
-  tower_governor::{GovernorLayer, governor::GovernorConfigBuilder},
+  tower_governor::{
+    GovernorError, GovernorLayer,
+    governor::{GovernorConfig, GovernorConfigBuilder},
+    key_extractor::KeyExtractor,
+  },
   tower_http::{
     LatencyUnit,
-    cors::CorsLayer,
+    cors::{AllowOrigin, CorsLayer},
     request_id::{
       MakeRequestUuid, PropagateRequestIdLayer, RequestId, SetRequestIdLayer,
     },
@@ -99,6 +106,7 @@ mod documentation;
 mod error;
 mod extraction;
 mod highlights;
+mod rate_limit;
 mod redis_session_store;
 mod server;
 mod state;

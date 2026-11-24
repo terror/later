@@ -1,4 +1,4 @@
-import { queryOptions } from '@tanstack/react-query';
+import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
 
 import { getArticle, getArticles, getHighlights, getSession } from './api';
 
@@ -8,9 +8,11 @@ export const sessionQuery = queryOptions({
   staleTime: 5 * 60 * 1000,
 });
 
-export const articlesQuery = queryOptions({
+export const articlesQuery = infiniteQueryOptions({
   queryKey: ['articles'],
-  queryFn: getArticles,
+  queryFn: ({ pageParam }) => getArticles({ cursor: pageParam ?? undefined }),
+  initialPageParam: null as string | null,
+  getNextPageParam: (page) => page.next_cursor,
 });
 
 export function articleQuery(articleId: string) {

@@ -1,7 +1,12 @@
 import type { Article } from '@later/types';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
-import { articles as fixtures, now, user } from '../../.storybook/fixtures';
+import {
+  articles as fixtures,
+  library,
+  now,
+  user,
+} from '../../.storybook/fixtures';
 import preview from '../../.storybook/preview';
 import { applyUpdate } from '../lib/library';
 import { Library } from './library';
@@ -9,11 +14,26 @@ import { Library } from './library';
 function Example({
   articles: initial,
   error = false,
+  pageSize,
 }: {
   articles: Article[] | null;
   error?: boolean;
+  pageSize?: number;
 }) {
   const [articles, setArticles] = useState(initial);
+
+  const [loaded, setLoaded] = useState(pageSize ?? Infinity);
+
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const loadMore = useCallback(() => {
+    setLoadingMore(true);
+
+    setTimeout(() => {
+      setLoaded((loaded) => loaded + (pageSize ?? 0));
+      setLoadingMore(false);
+    }, 800);
+  }, [pageSize]);
 
   const update = (article: Article, fields: Partial<Article>) =>
     setArticles(
@@ -27,8 +47,11 @@ function Example({
 
   return (
     <Library
-      articles={articles}
+      articles={articles?.slice(0, loaded) ?? null}
       error={error}
+      hasMore={articles !== null && loaded < articles.length}
+      loadingMore={loadingMore}
+      onLoadMore={loadMore}
       user={user}
       signOutHref='#'
       now={now}
@@ -69,6 +92,11 @@ export const Default = meta.story({
 
 export const Phone = meta.story({
   globals: { theme: 'dark', viewport: { value: 'phone', isRotated: false } },
+});
+
+export const Paginated = meta.story({
+  args: { articles: library, pageSize: 10 },
+  globals: { viewport: { value: 'laptop', isRotated: false } },
 });
 
 export const Empty = meta.story({ args: { articles: [] } });

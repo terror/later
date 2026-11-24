@@ -100,7 +100,12 @@ impl Db {
     )
   }
 
-  pub async fn articles(&self, user_id: Uuid) -> Result<Vec<Article>> {
+  pub async fn articles(
+    &self,
+    user_id: Uuid,
+    before: Option<(DateTime<Utc>, Uuid)>,
+    limit: i64,
+  ) -> Result<Vec<Article>> {
     Ok(
       sqlx::query_as::<_, Article>(
         r#"
@@ -125,10 +130,18 @@ impl Db {
       FROM articles
       LEFT JOIN reading_progress USING (article_id, user_id)
       WHERE user_id = $1
-      ORDER BY date_saved DESC
+        AND (
+          $2::timestamptz IS NULL
+          OR (date_saved, article_id) < ($2::timestamptz, $3::uuid)
+        )
+      ORDER BY date_saved DESC, article_id DESC
+      LIMIT $4
       "#,
       )
       .bind(user_id)
+      .bind(before.map(|(date_saved, _)| date_saved))
+      .bind(before.map(|(_, article_id)| article_id))
+      .bind(limit)
       .fetch_all(&self.pool)
       .await?,
     )
@@ -1084,7 +1097,10 @@ mod tests {
       }),
     );
 
-    assert_eq!(db.articles(user.user_id).await.unwrap(), vec![article]);
+    assert_eq!(
+      db.articles(user.user_id, None, 50).await.unwrap(),
+      vec![article]
+    );
   }
 
   #[tokio::test(flavor = "multi_thread")]
@@ -1130,7 +1146,10 @@ mod tests {
       },
     );
 
-    assert_eq!(db.articles(user.user_id).await.unwrap(), vec![resaved]);
+    assert_eq!(
+      db.articles(user.user_id, None, 50).await.unwrap(),
+      vec![resaved]
+    );
   }
 
   #[tokio::test(flavor = "multi_thread")]

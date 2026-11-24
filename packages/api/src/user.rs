@@ -49,6 +49,10 @@ where
     parts: &mut Parts,
     state: &S,
   ) -> Result<Self, Self::Rejection> {
+    if let Some(user) = parts.extensions.get::<User>() {
+      return Ok(user.clone());
+    }
+
     let authorization = parts
       .extract::<Option<TypedHeader<Authorization<Bearer>>>>()
       .await
@@ -66,24 +70,15 @@ where
 
     let store = RedisSessionStore::from_ref(state);
 
-    let cookies = parts
-      .extract::<TypedHeader<headers::Cookie>>()
+    let TypedHeader(cookies) = parts
+      .extract::<Option<TypedHeader<headers::Cookie>>>()
       .await
-      .map_err(|e| match *e.name() {
-        header::COOKIE => match e.reason() {
-          TypedHeaderRejectionReason::Missing => Unauthorized,
-          _ => panic!("unexpected error getting Cookie header(s): {e}"),
-        },
-        _ => panic!("unexpected error getting cookies: {e}"),
-      })?;
+      .map_err(|_| Unauthorized)?
+      .ok_or(Unauthorized)?;
 
     let session_cookie = cookies.get(COOKIE_NAME).ok_or(Unauthorized)?;
 
-    let session = store
-      .load_session(session_cookie.to_string())
-      .await
-      .unwrap()
-      .ok_or(Unauthorized)?;
+    let session = store.load(session_cookie).await?.ok_or(Unauthorized)?;
 
     let user = session.get::<model::User>("user").ok_or(Unauthorized)?;
 

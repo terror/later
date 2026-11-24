@@ -46,6 +46,9 @@ const SORT_LABELS: Record<Sort, string> = {
 export function Library({
   articles,
   error = false,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
   user,
   signOutHref,
   now = new Date(),
@@ -56,6 +59,9 @@ export function Library({
 }: {
   articles: Article[] | null;
   error?: boolean;
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
   user: User | null;
   signOutHref: string;
   now?: Date;
@@ -73,6 +79,29 @@ export function Library({
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const search = useRef<HTMLInputElement>(null);
+
+  const scroller = useRef<HTMLDivElement>(null);
+
+  const sentinel = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!hasMore || loadingMore || !onLoadMore || !sentinel.current) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          onLoadMore();
+        }
+      },
+      { root: scroller.current, rootMargin: '400px' }
+    );
+
+    observer.observe(sentinel.current);
+
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, onLoadMore, articles]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -165,7 +194,10 @@ export function Library({
             onValueChange={setView}
           />
         </header>
-        <div className='flex-1 overflow-y-auto px-2 pb-6 md:px-3'>
+        <div
+          ref={scroller}
+          className='flex-1 overflow-y-auto px-2 pb-6 md:px-3'
+        >
           {error ? (
             <EmptyState
               title='Your articles couldn’t be loaded.'
@@ -186,6 +218,12 @@ export function Library({
                 </li>
               ))}
             </ul>
+          )}
+          {!error && hasMore && <div ref={sentinel} aria-hidden />}
+          {!error && loadingMore && (
+            <p className='text-muted-foreground py-4 text-center text-[13px]'>
+              Loading more…
+            </p>
           )}
         </div>
       </main>

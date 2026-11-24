@@ -5,6 +5,44 @@ const TRACKING_PARAMETERS: &[&str] = &[
   "mc_cid", "mc_eid", "msclkid", "wbraid", "yclid",
 ];
 
+const DEFAULT_LIMIT: usize = 50;
+
+const MAX_LIMIT: usize = 100;
+
+#[derive(Debug, PartialEq)]
+struct Cursor {
+  article_id: Uuid,
+  date_saved: DateTime<Utc>,
+}
+
+impl Display for Cursor {
+  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    write!(
+      f,
+      "{}_{}",
+      self.date_saved.timestamp_micros(),
+      self.article_id
+    )
+  }
+}
+
+impl FromStr for Cursor {
+  type Err = BadRequest;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    s.split_once('_')
+      .and_then(|(date_saved, article_id)| {
+        Some(Self {
+          article_id: article_id.parse().ok()?,
+          date_saved: DateTime::from_timestamp_micros(
+            date_saved.parse().ok()?,
+          )?,
+        })
+      })
+      .ok_or_else(|| BadRequest(format!("invalid cursor `{s}`")))
+  }
+}
+
 fn normalize_url(url: &Url) -> Url {
   let mut normalized = url.clone();
 
@@ -82,20 +120,57 @@ pub(crate) async fn get(
   get,
   path = "/articles",
   tag = "articles",
+  params(model::ListArticles),
   responses(
-    (status = StatusCode::OK, body = Vec<model::Article>),
+    (status = StatusCode::OK, body = model::ArticlePage),
+    (status = StatusCode::BAD_REQUEST, body = String),
     (status = StatusCode::UNAUTHORIZED)
   )
 )]
 pub(crate) async fn list(
   user: User,
   AppState(db): AppState<Db>,
-) -> Result<Json<Vec<model::Article>>> {
-  Ok(Json(
-    db.articles(user.user_id)
-      .await
-      .context("failed to load articles")?,
-  ))
+  Query(params): Query<model::ListArticles>,
+) -> Result<Json<model::ArticlePage>> {
+  let limit = params.limit.unwrap_or(DEFAULT_LIMIT);
+
+  if !(1..=MAX_LIMIT).contains(&limit) {
+    return Err(
+      BadRequest(format!("limit must be between 1 and {MAX_LIMIT}")).into(),
+    );
+  }
+
+  let cursor = params
+    .cursor
+    .as_deref()
+    .map(str::parse::<Cursor>)
+    .transpose()?;
+
+  let mut articles = db
+    .articles(
+      user.user_id,
+      cursor.map(|cursor| (cursor.date_saved, cursor.article_id)),
+      i64::try_from(limit + 1).context("invalid limit")?,
+    )
+    .await
+    .context("failed to load articles")?;
+
+  let more = articles.len() > limit;
+
+  articles.truncate(limit);
+
+  let next_cursor = articles.last().filter(|_| more).map(|article| {
+    Cursor {
+      article_id: article.article_id,
+      date_saved: article.date_saved,
+    }
+    .to_string()
+  });
+
+  Ok(Json(model::ArticlePage {
+    articles,
+    next_cursor,
+  }))
 }
 
 fn check_progress(progress: &model::ReadingProgress) -> Result<(), BadRequest> {
@@ -140,7 +215,7 @@ pub(crate) async fn save(
 
   let normalized_url = normalize_url(&url);
 
-  let (html, content) = match request.html {
+  let (html, content) = match request.html.map(|html| html.replace('\0', "")) {
     Some(html) => {
       let url = url.clone();
 
@@ -237,7 +312,100 @@ pub(crate) async fn update(
 
 #[cfg(test)]
 mod tests {
-  use super::*;
+  use {super::*, serde_json::json};
+
+  #[tokio::test(flavor = "multi_thread")]
+  async fn list() {
+    let context = TestContext::new().await;
+
+    let mut saved = Vec::new();
+
+    for url in ["https://foo.com/", "https://bar.com/", "https://baz.com/"] {
+      let (article, _) = context
+        .db
+        .save_article(&NewArticle {
+          content: None,
+          html: None,
+          normalized_url: url,
+          url,
+          user_id: context.user.user_id,
+        })
+        .await
+        .unwrap();
+
+      saved.push(article);
+    }
+
+    let cursor = Cursor {
+      article_id: saved[1].article_id,
+      date_saved: saved[1].date_saved,
+    }
+    .to_string();
+
+    assert_eq!(
+      context
+        .request(Method::GET, "/articles?limit=2", None)
+        .await,
+      (
+        StatusCode::OK,
+        serde_json::to_string(&model::ArticlePage {
+          articles: vec![saved[2].clone(), saved[1].clone()],
+          next_cursor: Some(cursor.clone()),
+        })
+        .unwrap(),
+      ),
+    );
+
+    assert_eq!(
+      context
+        .request(
+          Method::GET,
+          &format!("/articles?limit=2&cursor={cursor}"),
+          None,
+        )
+        .await,
+      (
+        StatusCode::OK,
+        serde_json::to_string(&model::ArticlePage {
+          articles: vec![saved[0].clone()],
+          next_cursor: None,
+        })
+        .unwrap(),
+      ),
+    );
+  }
+
+  #[tokio::test(flavor = "multi_thread")]
+  async fn save_strips_nul() {
+    let context = TestContext::new().await;
+
+    let (status, _) = context
+      .request(
+        Method::POST,
+        "/articles",
+        Some(json!({ "url": "https://foo.com/", "html": "<p>foo\0bar</p>" })),
+      )
+      .await;
+
+    assert_eq!(status, StatusCode::CREATED);
+
+    let articles = context
+      .db
+      .articles(context.user.user_id, None, 1)
+      .await
+      .unwrap();
+
+    assert_eq!(
+      context
+        .db
+        .article(context.user.user_id, articles[0].article_id)
+        .await
+        .unwrap()
+        .unwrap()
+        .content,
+      Some("<div><p>foobar</p></div>".into()),
+    );
+  }
 
   #[test]
   fn check_progress() {
