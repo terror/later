@@ -186,3 +186,95 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.reader-content {
+  font-size: 1.1875rem;
+  line-height: 1.7;
+  color: var(--color-neutral-800);
+  overflow-wrap: break-word;
+}
+
+.reader-content > * + *,
+.reader-content div > * + * {
+  margin-top: 1.25em;
+}
+
+.reader-content h1,
+.reader-content h2,
+.reader-content h3,
+.reader-content h4 {
+  margin-top: 2em;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: var(--color-neutral-900);
+}
+
+.reader-content h1,
+.reader-content h2 {
+  font-size: 1.5em;
+}
+
+.reader-content h3 {
+  font-size: 1.25em;
+}
+
+.reader-content a {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.reader-content img,
+.reader-content video {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+}
+
+.reader-content ul,
+.reader-content ol {
+  padding-left: 1.5em;
+}
+
+.reader-content ul {
+  list-style: disc;
+}
+
+.reader-content ol {
+  list-style: decimal;
+}
+
+.reader-content li + li {
+  margin-top: 0.5em;
+}
+
+.reader-content blockquote {
+  border-left: 2px solid var(--color-neutral-200);
+  padding-left: 1em;
+  color: var(--color-neutral-600);
+}
+
+.reader-content pre {
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  background: var(--color-neutral-100);
+  padding: 1em;
+  font-size: 0.85em;
+}
+
+.reader-content code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.reader-content figcaption {
+  margin-top: 0.5em;
+  font-size: 0.85em;
+  color: var(--color-neutral-500);
+}
+
+.reader-content table {
+  display: block;
+  overflow-x: auto;
+  font-size: 0.9em;
+}

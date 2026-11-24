@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { cn } from './utils';
+import { articleSource, cn } from './utils';
 
 describe('cn', () => {
   test('concatenates a basic list of classes', () => {
@@ -24,5 +24,23 @@ describe('cn', () => {
     expect(cn('p-2', 'p-4', ['bg-red-500', 'bg-green-500'])).toBe(
       'p-4 bg-green-500'
     );
+  });
+});
+
+describe('articleSource', () => {
+  test('prefers the site name', () => {
+    expect(articleSource({ url: 'https://foo.com/', site_name: 'bar' })).toBe(
+      'bar'
+    );
+  });
+
+  test('falls back to the hostname without www', () => {
+    expect(
+      articleSource({ url: 'https://www.foo.com/bar', site_name: null })
+    ).toBe('foo.com');
+  });
+
+  test('falls back to the URL when it cannot be parsed', () => {
+    expect(articleSource({ url: 'foo', site_name: null })).toBe('foo');
   });
 });
