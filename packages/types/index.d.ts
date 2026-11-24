@@ -19,6 +19,11 @@ export interface Article {
     progress: ReadingProgress;
 }
 
+export interface ArticlePage {
+    articles: Article[];
+    next_cursor: string | null;
+}
+
 export interface ArticleWithContent extends Article {
     content: string | null;
 }
@@ -45,6 +50,11 @@ export interface Highlight {
     note: string | null;
     created_at: string;
     updated_at: string;
+}
+
+export interface ListArticles {
+    cursor?: string;
+    limit?: number;
 }
 
 export interface ReadingProgress {

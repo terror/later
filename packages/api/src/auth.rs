@@ -2,6 +2,10 @@ use super::*;
 
 pub(crate) static COOKIE_NAME: &str = "SESSION";
 
+const LOGIN_TTL: Duration = Duration::from_secs(10 * 60);
+
+const SESSION_TTL: Duration = Duration::from_secs(30 * 24 * 60 * 60);
+
 static CSRF_TOKEN: &str = "csrf_token";
 static HANDOFF_COOKIE: &str = "handoff_cookie";
 static REDIRECT_URL: &str = "redirect_url";
@@ -41,8 +45,11 @@ pub(crate) struct RedirectParams {
   redirect: Option<String>,
 }
 
-fn session_cookie(value: &str) -> Result<HeaderMap> {
-  let cookie = format!("{COOKIE_NAME}={value}; SameSite=Lax; HttpOnly; Path=/");
+fn session_cookie(value: &str, max_age: Duration) -> Result<HeaderMap> {
+  let cookie = format!(
+    "{COOKIE_NAME}={value}; SameSite=Lax; HttpOnly; Path=/; Max-Age={}",
+    max_age.as_secs()
+  );
 
   let mut headers = HeaderMap::new();
 
@@ -110,6 +117,8 @@ pub async fn login(
 
   let mut session = Session::new();
 
+  session.expire_in(LOGIN_TTL);
+
   session
     .insert(CSRF_TOKEN, &csrf_token)
     .context("failed in inserting CSRF token into session")?;
@@ -128,7 +137,10 @@ pub async fn login(
     .context("failed to store CSRF token session")?
     .context("unexpected error retrieving CSRF cookie value")?;
 
-  Ok((session_cookie(&cookie)?, Redirect::to(auth_url.as_ref())))
+  Ok((
+    session_cookie(&cookie, LOGIN_TTL)?,
+    Redirect::to(auth_url.as_ref()),
+  ))
 }
 
 #[utoipa::path(
@@ -219,20 +231,17 @@ pub(crate) async fn login_authorized(
     .await
     .context("failed to persist authenticated user")?;
 
-  let mut session = Session::new();
-
-  session
-    .insert("user", &user)
-    .context("failed in inserting serialized value into session")?;
-
   let cookie = store
-    .store_session(session)
+    .store_session(user_session(&user)?)
     .await
     .context("failed to store session")?
     .context("unexpected error retrieving cookie value")?;
 
   let Some(redirect) = redirect else {
-    return Ok((session_cookie(&cookie)?, Redirect::to("/")).into_response());
+    return Ok(
+      (session_cookie(&cookie, SESSION_TTL)?, Redirect::to("/"))
+        .into_response(),
+    );
   };
 
   let redirect = allowed_origins.validate(&redirect)?;
@@ -275,26 +284,27 @@ pub(crate) async fn exchange(
   Query(params): Query<ExchangeParams>,
   AppState(store): AppState<RedisSessionStore>,
 ) -> Result<impl IntoResponse> {
-  let handoff = store
-    .load_session(params.code)
-    .await
-    .context("failed to load handoff session")?
-    .context("handoff session not found")?;
+  let invalid_code = || BadRequest("invalid or expired code".into());
+
+  let handoff = store.load(&params.code).await?.ok_or_else(invalid_code)?;
 
   let cookie = handoff
     .get::<String>(HANDOFF_COOKIE)
-    .context("cookie not found in handoff session")?;
+    .ok_or_else(invalid_code)?;
 
   let redirect = handoff
     .get::<String>(REDIRECT_URL)
-    .context("redirect not found in handoff session")?;
+    .ok_or_else(invalid_code)?;
 
   store
     .destroy_session(handoff)
     .await
     .context("failed to destroy handoff session")?;
 
-  Ok((session_cookie(&cookie)?, Redirect::to(&redirect)))
+  Ok((
+    session_cookie(&cookie, SESSION_TTL)?,
+    Redirect::to(&redirect),
+  ))
 }
 
 #[utoipa::path(
@@ -314,33 +324,30 @@ pub(crate) async fn logout(
   Query(params): Query<RedirectParams>,
   AppState(allowed_origins): AppState<AllowedOrigins>,
   AppState(store): AppState<RedisSessionStore>,
-  TypedHeader(cookies): TypedHeader<headers::Cookie>,
+  cookies: Option<TypedHeader<headers::Cookie>>,
 ) -> Result<impl IntoResponse> {
   let redirect_target = match params.redirect {
     Some(redirect) => allowed_origins.validate(&redirect)?.to_string(),
     None => "/".to_string(),
   };
 
-  let cookie = match cookies.get(COOKIE_NAME) {
-    Some(cookie) => cookie.to_string(),
-    None => return Ok(Redirect::to(redirect_target.as_str())),
-  };
+  let cookie = cookies
+    .as_ref()
+    .and_then(|TypedHeader(cookies)| cookies.get(COOKIE_NAME));
 
-  let session = match store
-    .load_session(cookie)
-    .await
-    .context("failed to load session")?
+  if let Some(cookie) = cookie
+    && let Some(session) = store.load(cookie).await?
   {
-    Some(s) => s,
-    None => return Ok(Redirect::to(redirect_target.as_str())),
-  };
+    store
+      .destroy_session(session)
+      .await
+      .context("failed to destroy session")?;
+  }
 
-  store
-    .destroy_session(session)
-    .await
-    .context("failed to destroy session")?;
-
-  Ok(Redirect::to(redirect_target.as_str()))
+  Ok((
+    session_cookie("", Duration::ZERO)?,
+    Redirect::to(redirect_target.as_str()),
+  ))
 }
 
 #[utoipa::path(
@@ -364,22 +371,16 @@ async fn validate_csrf_token(
 ) -> Result<Option<String>> {
   let cookie = cookies
     .get(COOKIE_NAME)
-    .context("unexpected error getting cookie name")?
-    .to_string();
+    .ok_or_else(|| BadRequest("missing session cookie".into()))?;
 
-  let session = match store
-    .load_session(cookie)
-    .await
-    .context("failed to load session")?
-  {
-    Some(session) => session,
-    None => return Err(anyhow!("Session not found").into()),
-  };
+  let session = store
+    .load(cookie)
+    .await?
+    .ok_or_else(|| BadRequest("session not found".into()))?;
 
   let stored_csrf_token = session
     .get::<CsrfToken>(CSRF_TOKEN)
-    .context("CSRF token not found in session")?
-    .to_owned();
+    .ok_or_else(|| BadRequest("CSRF token not found in session".into()))?;
 
   let redirect = session.get::<String>(REDIRECT_URL);
 
@@ -389,8 +390,67 @@ async fn validate_csrf_token(
     .context("Failed to destroy old session")?;
 
   if *stored_csrf_token.secret() != auth_request.state {
-    return Err(anyhow!("CSRF token mismatch").into());
+    return Err(BadRequest("CSRF token mismatch".into()).into());
   }
 
   Ok(redirect)
+}
+
+fn user_session(user: &model::User) -> Result<Session> {
+  let mut session = Session::new();
+
+  session.expire_in(SESSION_TTL);
+
+  session
+    .insert("user", user)
+    .context("failed in inserting serialized value into session")?;
+
+  Ok(session)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn session_cookie() {
+    #[track_caller]
+    fn case(value: &str, max_age: Duration, expected: &str) {
+      assert_eq!(
+        super::session_cookie(value, max_age).unwrap()[SET_COOKIE],
+        expected,
+      );
+    }
+
+    case(
+      "foo",
+      SESSION_TTL,
+      "SESSION=foo; SameSite=Lax; HttpOnly; Path=/; Max-Age=2592000",
+    );
+    case(
+      "",
+      Duration::ZERO,
+      "SESSION=; SameSite=Lax; HttpOnly; Path=/; Max-Age=0",
+    );
+  }
+
+  #[test]
+  fn user_session() {
+    let user = model::User {
+      user_id: Uuid::nil(),
+      email: "foo@bar.com".into(),
+      name: None,
+      created_at: DateTime::UNIX_EPOCH,
+      updated_at: DateTime::UNIX_EPOCH,
+    };
+
+    let session = super::user_session(&user).unwrap();
+
+    assert_eq!(session.get::<model::User>("user"), Some(user));
+
+    let expires_in = session.expires_in().unwrap();
+
+    assert!(expires_in <= SESSION_TTL);
+    assert!(expires_in > SESSION_TTL - Duration::from_secs(60));
+  }
 }

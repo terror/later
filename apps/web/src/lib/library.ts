@@ -1,4 +1,5 @@
-import type { Article, UpdateArticle } from '@later/types';
+import type { Article, ArticlePage, UpdateArticle } from '@later/types';
+import type { InfiniteData } from '@tanstack/react-query';
 
 export type View = 'inbox' | 'favorites' | 'archive';
 
@@ -77,6 +78,21 @@ export function patchArticle(
 ): Article[] {
   return articles.map((article) =>
     article.article_id === articleId ? patch(article) : article
+  );
+}
+
+export function mapPages(
+  data: InfiniteData<ArticlePage> | undefined,
+  update: (articles: Article[]) => Article[]
+): InfiniteData<ArticlePage> | undefined {
+  return (
+    data && {
+      ...data,
+      pages: data.pages.map((page) => ({
+        ...page,
+        articles: update(page.articles),
+      })),
+    }
   );
 }
 

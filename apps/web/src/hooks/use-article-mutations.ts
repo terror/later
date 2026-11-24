@@ -1,20 +1,27 @@
 import { deleteArticle, saveProgress, updateArticle } from '@/lib/api';
-import { applyUpdate, patchArticle, removeArticle } from '@/lib/library';
+import {
+  applyUpdate,
+  mapPages,
+  patchArticle,
+  removeArticle,
+} from '@/lib/library';
 import { articleQuery, articlesQuery } from '@/lib/queries';
 import type {
   Article,
+  ArticlePage,
   ArticleWithContent,
   ReadingProgress,
   UpdateArticle,
 } from '@later/types';
 import {
+  type InfiniteData,
   type QueryClient,
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
 
 type Snapshot = {
-  articles: Article[] | undefined;
+  articles: InfiniteData<ArticlePage> | undefined;
   article: ArticleWithContent | undefined;
 };
 
@@ -29,9 +36,8 @@ async function patchCache(
 
   const article = queryClient.getQueryData(articleQuery(articleId).queryKey);
 
-  queryClient.setQueryData(
-    articlesQuery.queryKey,
-    (articles) => articles && patchArticle(articles, articleId, patch)
+  queryClient.setQueryData(articlesQuery.queryKey, (data) =>
+    mapPages(data, (articles) => patchArticle(articles, articleId, patch))
   );
 
   queryClient.setQueryData(
@@ -111,9 +117,8 @@ export function useDeleteArticle() {
 
       const articles = queryClient.getQueryData(articlesQuery.queryKey);
 
-      queryClient.setQueryData(
-        articlesQuery.queryKey,
-        (articles) => articles && removeArticle(articles, articleId)
+      queryClient.setQueryData(articlesQuery.queryKey, (data) =>
+        mapPages(data, (articles) => removeArticle(articles, articleId))
       );
 
       return { articles };

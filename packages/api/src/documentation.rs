@@ -54,6 +54,7 @@ impl Modify for GithubOAuthSecurity {
   ),
   components(
     schemas(
+      model::ArticlePage,
       model::Article,
       model::ArticleWithContent,
       model::CreateHighlight,

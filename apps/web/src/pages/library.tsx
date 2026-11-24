@@ -6,12 +6,13 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { getLogoutUrl } from '@/lib/api';
 import { articlesQuery } from '@/lib/queries';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 
 export default function LibraryPage() {
   const { user } = useAuth();
 
-  const { data: articles, isError } = useQuery(articlesQuery);
+  const { data, isError, hasNextPage, isFetchingNextPage, fetchNextPage } =
+    useInfiniteQuery(articlesQuery);
 
   const update = useUpdateArticle();
 
@@ -19,8 +20,11 @@ export default function LibraryPage() {
 
   return (
     <Library
-      articles={articles ?? null}
+      articles={data?.pages.flatMap((page) => page.articles) ?? null}
       error={isError}
+      hasMore={hasNextPage}
+      loadingMore={isFetchingNextPage}
+      onLoadMore={fetchNextPage}
       user={user}
       signOutHref={getLogoutUrl()}
       onToggleFavorite={(article) =>

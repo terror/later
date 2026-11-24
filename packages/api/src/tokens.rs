@@ -35,8 +35,10 @@ pub(crate) async fn create(
 )]
 pub(crate) async fn delete(
   AppState(db): AppState<Db>,
-  TypedHeader(Authorization(bearer)): TypedHeader<Authorization<Bearer>>,
+  authorization: Option<TypedHeader<Authorization<Bearer>>>,
 ) -> Result<StatusCode> {
+  let TypedHeader(Authorization(bearer)) = authorization.ok_or(Unauthorized)?;
+
   if db
     .delete_api_token(&ApiToken::hash(bearer.token()))
     .await

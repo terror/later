@@ -123,6 +123,7 @@ dependencies = [
  "db",
  "dom_query",
  "dotenv",
+ "governor",
  "http",
  "model",
  "oauth2",

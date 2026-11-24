@@ -39,6 +39,19 @@ impl RedisSessionStore {
   fn prefix_key(&self, key: impl AsRef<str>) -> String {
     format!("{}{}", self.prefix, key.as_ref())
   }
+
+  pub(crate) async fn load(&self, cookie: &str) -> Result<Option<Session>> {
+    if Session::id_from_cookie_value(cookie).is_err() {
+      return Ok(None);
+    }
+
+    Ok(
+      self
+        .load_session(cookie.into())
+        .await
+        .context("failed to load session")?,
+    )
+  }
 }
 
 #[async_trait]
