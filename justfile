@@ -13,6 +13,16 @@ default:
 clippy:
   ./bin/clippy
 
+[group: 'desktop']
+[working-directory: 'apps/desktop']
+desktop:
+  bun run tauri dev
+
+[group: 'desktop']
+[working-directory: 'apps/desktop']
+desktop-build origin='https://www.later.sh':
+  bun run tauri build --config '{"build":{"frontendDist":"{{origin}}"}}'
+
 [group: 'dev']
 dev: services
   concurrently \
