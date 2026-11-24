@@ -88,6 +88,7 @@ impl Server {
       .route("/auth/login", get(auth::login))
       .route("/auth/logout", get(auth::logout))
       .route("/auth/session", get(auth::session))
+      .route("/tokens", post(tokens::create).delete(tokens::delete))
       .merge(Scalar::with_url("/", Documentation::openapi()));
 
     let trace_layer = TraceLayer::new_for_http()

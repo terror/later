@@ -41,17 +41,21 @@ impl Modify for GithubOAuthSecurity {
     auth::exchange,
     auth::logout,
     auth::session,
+    tokens::create,
+    tokens::delete,
   ),
   components(
     schemas(
       articles::SaveArticle,
       model::Article,
-      model::User
+      model::User,
+      tokens::CreatedToken
     )
   ),
   tags(
     (name = "articles"),
     (name = "auth", description = "All authentication related endpoints."),
+    (name = "tokens"),
   ),
 )]
 pub(crate) struct Documentation;
