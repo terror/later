@@ -21,3 +21,11 @@ const meta = preview.meta({
 export const Default = meta.story({});
 
 export const Active = meta.story({ args: { active: true } });
+
+export const InProgress = meta.story({ args: { article: articles[2] } });
+
+export const InProgressActive = meta.story({
+  args: { article: articles[2], active: true },
+});
+
+export const Read = meta.story({ args: { article: articles[4] } });

@@ -19,4 +19,6 @@ pub struct Article {
   pub is_favorited: bool,
   pub date_saved: DateTime<Utc>,
   pub date_read: Option<DateTime<Utc>>,
+  #[sqlx(flatten)]
+  pub progress: ReadingProgress,
 }
