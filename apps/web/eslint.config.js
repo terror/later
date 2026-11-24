@@ -21,4 +21,10 @@ export default [
       'react-refresh/only-export-components': 'warn',
     },
   },
+  {
+    files: ['**/*.stories.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ];

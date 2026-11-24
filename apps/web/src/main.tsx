@@ -1,9 +1,11 @@
 import App from '@/App.tsx';
 import '@/index.css';
+import { watchColorScheme } from '@/lib/theme';
 import { AuthProvider } from '@/providers/auth-provider';
-import '@fontsource-variable/inter';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+
+watchColorScheme();
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
