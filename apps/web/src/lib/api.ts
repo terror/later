@@ -26,3 +26,18 @@ export function getLoginUrl(): string {
 export function getLogoutUrl(): string {
   return `/auth/logout?redirect=${encodeURIComponent(window.location.href)}`;
 }
+
+export async function createToken(): Promise<string> {
+  const response = await fetch('/api/tokens', {
+    method: 'POST',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(`failed to create token: ${response.status}`);
+  }
+
+  const { token } = await response.json();
+
+  return token;
+}
