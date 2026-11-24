@@ -19,7 +19,7 @@ test('shows the landing page when signed out', async ({ page, baseURL }) => {
     await page
       .getByRole('link', { name: 'Continue with GitHub' })
       .evaluateAll((links) => links.map((link) => link.getAttribute('href')))
-  ).toEqual([href, href]);
+  ).toEqual([href]);
 });
 
 test('links to the sign in page', async ({ page, baseURL }) => {
