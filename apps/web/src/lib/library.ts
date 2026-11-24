@@ -52,3 +52,22 @@ export function filterArticles(
         direction * (Date.parse(a.date_saved) - Date.parse(b.date_saved))
     );
 }
+
+export type ArticleUpdate = { is_archived?: boolean; is_favorited?: boolean };
+
+export function patchArticle(
+  articles: Article[],
+  articleId: string,
+  update: ArticleUpdate
+): Article[] {
+  return articles.map((article) =>
+    article.article_id === articleId ? { ...article, ...update } : article
+  );
+}
+
+export function removeArticle(
+  articles: Article[],
+  articleId: string
+): Article[] {
+  return articles.filter((article) => article.article_id !== articleId);
+}

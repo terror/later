@@ -1,16 +1,18 @@
 import App from '@/App.tsx';
 import '@/index.css';
 import { watchColorScheme } from '@/lib/theme';
-import { AuthProvider } from '@/providers/auth-provider';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 watchColorScheme();
 
+const queryClient = new QueryClient();
+
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    <AuthProvider>
+    <QueryClientProvider client={queryClient}>
       <App />
-    </AuthProvider>
+    </QueryClientProvider>
   </React.StrictMode>
 );
