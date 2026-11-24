@@ -35,6 +35,12 @@ impl Server {
 
     info!("Database connected successfully");
 
+    let fetcher = Fetcher::default();
+
+    for _ in 0..worker::WORKERS {
+      task::spawn(worker::run(db.clone(), fetcher.clone()));
+    }
+
     let redis_url =
       env::var("REDIS_URL").unwrap_or("redis://127.0.0.1:6379".into());
 

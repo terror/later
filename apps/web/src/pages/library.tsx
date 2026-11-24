@@ -1,6 +1,7 @@
 import { Library } from '@/components/library';
 import {
   useDeleteArticle,
+  useSaveArticle,
   useUpdateArticle,
 } from '@/hooks/use-article-mutations';
 import { useAuth } from '@/hooks/use-auth';
@@ -17,6 +18,8 @@ export default function LibraryPage() {
   const update = useUpdateArticle();
 
   const remove = useDeleteArticle();
+
+  const save = useSaveArticle();
 
   return (
     <Library
@@ -46,6 +49,7 @@ export default function LibraryPage() {
         })
       }
       onDelete={(article) => remove.mutate(article.article_id)}
+      onAddLink={(url) => save.mutate(url)}
     />
   );
 }

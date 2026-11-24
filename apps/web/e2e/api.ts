@@ -3,12 +3,13 @@ import type {
   ArticlePage,
   ArticleWithContent,
   CreatedToken,
+  SaveArticle,
   UpdateArticle,
   User,
 } from '@later/types';
 import type { Page } from '@playwright/test';
 
-import { content, token } from './fixtures';
+import { content, now, token } from './fixtures';
 
 export async function mockApi(
   page: Page,
@@ -45,7 +46,38 @@ export async function mockApi(
       if (pathname === '/api/articles' && request.method() === 'GET') {
         const page: ArticlePage = { articles: saved, next_cursor: null };
 
+        saved = saved.map((article) =>
+          article.status === 'pending'
+            ? { ...article, status: 'extracted', title: 'qux' }
+            : article
+        );
+
         return route.fulfill({ json: page });
+      }
+
+      if (pathname === '/api/articles' && request.method() === 'POST') {
+        const { url }: SaveArticle = request.postDataJSON();
+        const article: Article = {
+          article_id: '00000000-0000-0000-0000-000000000201',
+          url,
+          status: 'pending',
+          title: null,
+          author: null,
+          excerpt: null,
+          site_name: null,
+          lang: null,
+          dir: null,
+          publication_date: null,
+          word_count: null,
+          reading_time_minutes: null,
+          is_archived: false,
+          is_favorited: false,
+          date_saved: now.toISOString(),
+          date_read: null,
+          progress: { scroll_position: 0, time_spent_seconds: 0 },
+        };
+        saved = [article, ...saved];
+        return route.fulfill({ status: 201, json: article });
       }
 
       const progress = saved.find(

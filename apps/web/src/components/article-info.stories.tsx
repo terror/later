@@ -1,6 +1,12 @@
 import { fn } from 'storybook/test';
 
-import { articles, highlights, reading } from '../../.storybook/fixtures';
+import {
+  articles,
+  failed,
+  highlights,
+  pending,
+  reading,
+} from '../../.storybook/fixtures';
 import preview from '../../.storybook/preview';
 import { ArticleInfo } from './article-info';
 
@@ -32,3 +38,7 @@ export const WithHighlights = meta.story({
     onSelectHighlight: fn(),
   },
 });
+
+export const Pending = meta.story({ args: { article: pending } });
+
+export const Failed = meta.story({ args: { article: failed } });

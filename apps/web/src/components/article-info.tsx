@@ -1,3 +1,4 @@
+import { ArticleStatus } from '@/components/article-status';
 import { HighlightList } from '@/components/highlight-list';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -70,7 +71,7 @@ export function ArticleInfo({
         </span>
       </div>
       <div className='flex flex-col gap-2'>
-        <h2 className='text-[19px] leading-snug font-semibold tracking-[-0.025em] text-pretty'>
+        <h2 className='text-[19px] leading-snug font-semibold tracking-[-0.025em] text-pretty wrap-break-word'>
           {article.title ?? article.url}
         </h2>
         {article.excerpt && (
@@ -79,6 +80,11 @@ export function ArticleInfo({
           </p>
         )}
       </div>
+      {article.status !== 'extracted' && (
+        <p className='bg-background text-muted-foreground rounded-xl p-3.5 text-[13px]'>
+          <ArticleStatus status={article.status} />
+        </p>
+      )}
       <dl className='bg-background flex flex-col gap-2.5 rounded-xl p-3.5 text-[13px]'>
         {details.map(([term, description]) => (
           <div key={term} className='flex justify-between gap-3'>

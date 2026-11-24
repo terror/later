@@ -1,7 +1,7 @@
 use {
   allowed_origins::AllowedOrigins,
   anchor::Anchor,
-  anyhow::{Context, anyhow},
+  anyhow::{Context, anyhow, bail},
   api_token::ApiToken,
   async_session::{Session, SessionStore, async_trait, serde_json},
   auth::COOKIE_NAME,
@@ -22,10 +22,11 @@ use {
   },
   chrono::{DateTime, Utc},
   clap::Parser,
-  db::{ArticleContent, Db, NewArticle, NewHighlight},
+  db::{ArticleContent, ClaimedArticle, Db, NewArticle, NewHighlight},
   documentation::Documentation,
   dotenv::dotenv,
   error::{BadRequest, Error, NotFound, Unauthorized},
+  fetcher::{Fetcher, Page},
   governor::middleware::StateInformationMiddleware,
   http::{
     HeaderMap, Method, Request, StatusCode,
@@ -55,7 +56,7 @@ use {
     convert::Infallible,
     env,
     fmt::{self, Debug, Display, Formatter},
-    net::{IpAddr, SocketAddr},
+    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
     ops::Deref,
     process,
     str::FromStr,
@@ -63,7 +64,10 @@ use {
     thread,
     time::Duration,
   },
-  tokio::{net::TcpListener, task},
+  tokio::{
+    net::{self, TcpListener},
+    task, time,
+  },
   tower::ServiceBuilder,
   tower_governor::{
     GovernorError, GovernorLayer,
@@ -82,6 +86,7 @@ use {
   },
   tracing::{Level, error, info, info_span, warn},
   tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt},
+  url::Host,
   user::User,
   utoipa::{
     Modify, OpenApi,
@@ -97,6 +102,7 @@ use {
 #[cfg(test)]
 use test_context::TestContext;
 
+mod address;
 mod allowed_origins;
 mod anchor;
 mod api_token;
@@ -105,6 +111,7 @@ mod auth;
 mod documentation;
 mod error;
 mod extraction;
+mod fetcher;
 mod highlights;
 mod rate_limit;
 mod redis_session_store;
@@ -114,6 +121,7 @@ mod state;
 mod test_context;
 mod tokens;
 mod user;
+mod worker;
 
 type Result<T = (), E = Error> = std::result::Result<T, E>;
 

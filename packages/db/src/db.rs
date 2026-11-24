@@ -52,6 +52,7 @@ impl Db {
       SELECT
         article_id,
         url,
+        status,
         title,
         author,
         excerpt,
@@ -112,6 +113,7 @@ impl Db {
       SELECT
         article_id,
         url,
+        status,
         title,
         author,
         excerpt,
@@ -143,6 +145,33 @@ impl Db {
       .bind(before.map(|(_, article_id)| article_id))
       .bind(limit)
       .fetch_all(&self.pool)
+      .await?,
+    )
+  }
+
+  pub async fn claim_article(
+    &self,
+    lease: Duration,
+  ) -> Result<Option<ClaimedArticle>> {
+    Ok(
+      sqlx::query_as::<_, ClaimedArticle>(
+        r#"
+      UPDATE articles
+      SET attempts = attempts + 1,
+        next_attempt_at = NOW() + make_interval(secs => $1)
+      WHERE article_id = (
+        SELECT article_id
+        FROM articles
+        WHERE status = 'pending' AND next_attempt_at <= NOW()
+        ORDER BY next_attempt_at
+        LIMIT 1
+        FOR UPDATE SKIP LOCKED
+      )
+      RETURNING article_id, url, attempts
+      "#,
+      )
+      .bind(lease.as_secs_f64())
+      .fetch_optional(&self.pool)
       .await?,
     )
   }
@@ -326,6 +355,94 @@ impl Db {
     )
   }
 
+  pub async fn fail_extraction(&self, article_id: Uuid) -> Result<bool> {
+    Ok(
+      sqlx::query(
+        "UPDATE articles SET status = 'failed' WHERE article_id = $1 AND status = 'pending'",
+      )
+      .bind(article_id)
+      .execute(&self.pool)
+      .await?
+      .rows_affected()
+        > 0,
+    )
+  }
+
+  pub async fn finish_extraction(
+    &self,
+    article_id: Uuid,
+    html: &str,
+    content: Option<&ArticleContent>,
+  ) -> Result<bool> {
+    let status = if content.is_some() {
+      ArticleStatus::Extracted
+    } else {
+      ArticleStatus::Failed
+    };
+
+    Ok(
+      sqlx::query(
+        r#"
+      UPDATE articles
+      SET html = $2,
+        title = $3,
+        author = $4,
+        excerpt = $5,
+        site_name = $6,
+        lang = $7,
+        dir = $8,
+        publication_date = $9,
+        content = $10,
+        text_content = $11,
+        word_count = $12,
+        reading_time_minutes = $13,
+        status = $14
+      WHERE article_id = $1 AND status = 'pending'
+      "#,
+      )
+      .bind(article_id)
+      .bind(html)
+      .bind(content.and_then(|content| content.title.as_deref()))
+      .bind(content.and_then(|content| content.author.as_deref()))
+      .bind(content.and_then(|content| content.excerpt.as_deref()))
+      .bind(content.and_then(|content| content.site_name.as_deref()))
+      .bind(content.and_then(|content| content.lang.as_deref()))
+      .bind(content.and_then(|content| content.dir.as_deref()))
+      .bind(content.and_then(|content| content.publication_date))
+      .bind(content.map(|content| content.content.as_str()))
+      .bind(content.map(|content| content.text_content.as_str()))
+      .bind(content.map(|content| content.word_count))
+      .bind(content.map(|content| content.reading_time_minutes))
+      .bind(status)
+      .execute(&self.pool)
+      .await?
+      .rows_affected()
+        > 0,
+    )
+  }
+
+  pub async fn retry_extraction(
+    &self,
+    article_id: Uuid,
+    delay: Duration,
+  ) -> Result<bool> {
+    Ok(
+      sqlx::query(
+        r#"
+      UPDATE articles
+      SET next_attempt_at = NOW() + make_interval(secs => $2)
+      WHERE article_id = $1 AND status = 'pending'
+      "#,
+      )
+      .bind(article_id)
+      .bind(delay.as_secs_f64())
+      .execute(&self.pool)
+      .await?
+      .rows_affected()
+        > 0,
+    )
+  }
+
   pub async fn save_article(
     &self,
     article: &NewArticle<'_>,
@@ -338,6 +455,12 @@ impl Db {
     }
 
     let content = article.content.as_ref();
+
+    let status = match (content, article.html) {
+      (Some(_), _) => ArticleStatus::Extracted,
+      (None, Some(_)) => ArticleStatus::Failed,
+      (None, None) => ArticleStatus::Pending,
+    };
 
     let saved = sqlx::query_as::<_, Saved>(
       r#"
@@ -357,7 +480,8 @@ impl Db {
         content,
         text_content,
         word_count,
-        reading_time_minutes
+        reading_time_minutes,
+        status
       )
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
@@ -370,7 +494,7 @@ impl Db {
           ) THEN NULL
           ELSE $12
         END,
-        $13, $14, $15
+        $13, $14, $15, $16
       )
       ON CONFLICT (user_id, normalized_url) DO UPDATE
       SET url = EXCLUDED.url,
@@ -386,6 +510,9 @@ impl Db {
         text_content = CASE WHEN EXCLUDED.content IS NULL THEN articles.text_content ELSE EXCLUDED.text_content END,
         word_count = CASE WHEN EXCLUDED.content IS NULL THEN articles.word_count ELSE EXCLUDED.word_count END,
         reading_time_minutes = CASE WHEN EXCLUDED.content IS NULL THEN articles.reading_time_minutes ELSE EXCLUDED.reading_time_minutes END,
+        status = CASE WHEN EXCLUDED.content IS NULL AND articles.status = 'extracted' THEN articles.status ELSE EXCLUDED.status END,
+        attempts = 0,
+        next_attempt_at = NOW(),
         is_archived = FALSE,
         date_saved = NOW()
       RETURNING (xmax = 0) AS created, *
@@ -394,6 +521,7 @@ impl Db {
         created,
         article_id,
         url,
+        status,
         title,
         author,
         excerpt,
@@ -428,6 +556,7 @@ impl Db {
     .bind(content.map(|content| content.text_content.as_str()))
     .bind(content.map(|content| content.word_count))
     .bind(content.map(|content| content.reading_time_minutes))
+    .bind(status)
     .fetch_one(&self.pool)
     .await?;
 
@@ -459,6 +588,7 @@ impl Db {
       SELECT
         article_id,
         url,
+        status,
         title,
         author,
         excerpt,
@@ -1149,6 +1279,157 @@ mod tests {
     assert_eq!(
       db.articles(user.user_id, None, 50).await.unwrap(),
       vec![resaved]
+    );
+  }
+
+  #[tokio::test(flavor = "multi_thread")]
+  async fn extraction_queue() {
+    let TestContext { db, .. } = TestContext::new().await;
+
+    let user = db.upsert_user("foo@bar.com", None).await.unwrap();
+
+    let lease = Duration::from_secs(60);
+
+    let (article, _) = db
+      .save_article(&NewArticle {
+        html: None,
+        ..new_article(user.user_id, None)
+      })
+      .await
+      .unwrap();
+
+    assert_eq!(article.status, ArticleStatus::Pending);
+
+    let claimed = |attempts| ClaimedArticle {
+      article_id: article.article_id,
+      url: "https://foo.com/bar?utm_source=baz".into(),
+      attempts,
+    };
+
+    assert_eq!(db.claim_article(lease).await.unwrap(), Some(claimed(1)));
+
+    assert_eq!(db.claim_article(lease).await.unwrap(), None);
+
+    assert!(
+      db.retry_extraction(article.article_id, Duration::ZERO)
+        .await
+        .unwrap()
+    );
+
+    assert_eq!(db.claim_article(lease).await.unwrap(), Some(claimed(2)));
+
+    assert!(
+      db.retry_extraction(article.article_id, lease)
+        .await
+        .unwrap()
+    );
+
+    assert_eq!(db.claim_article(lease).await.unwrap(), None);
+
+    assert!(
+      db.finish_extraction(article.article_id, "<p>foo</p>", Some(&content()))
+        .await
+        .unwrap()
+    );
+
+    assert_eq!(
+      db.article(user.user_id, article.article_id).await.unwrap(),
+      Some(ArticleWithContent {
+        article: Article {
+          status: ArticleStatus::Extracted,
+          title: Some("foo".into()),
+          author: Some("bar".into()),
+          excerpt: Some("baz".into()),
+          site_name: Some("foo".into()),
+          lang: Some("en".into()),
+          word_count: Some(1),
+          reading_time_minutes: Some(1),
+          ..article.clone()
+        },
+        content: Some("<p>baz</p>".into()),
+      }),
+    );
+
+    assert!(
+      !db
+        .finish_extraction(article.article_id, "<p>foo</p>", None)
+        .await
+        .unwrap()
+    );
+
+    assert!(!db.fail_extraction(article.article_id).await.unwrap());
+
+    assert!(
+      !db
+        .retry_extraction(article.article_id, Duration::ZERO)
+        .await
+        .unwrap()
+    );
+  }
+
+  #[tokio::test(flavor = "multi_thread")]
+  async fn extraction_status() {
+    let TestContext { db, .. } = TestContext::new().await;
+
+    let user = db.upsert_user("foo@bar.com", None).await.unwrap();
+
+    let bare = NewArticle {
+      html: None,
+      ..new_article(user.user_id, None)
+    };
+
+    let status = async |article: &NewArticle<'_>| {
+      db.save_article(article).await.unwrap().0.status
+    };
+
+    assert_eq!(status(&bare).await, ArticleStatus::Pending);
+
+    let claimed = db.claim_article(Duration::ZERO).await.unwrap().unwrap();
+
+    assert!(
+      db.finish_extraction(claimed.article_id, "<p>foo</p>", None)
+        .await
+        .unwrap()
+    );
+
+    assert_eq!(
+      db.articles(user.user_id, None, 1).await.unwrap()[0].status,
+      ArticleStatus::Failed,
+    );
+
+    assert_eq!(status(&bare).await, ArticleStatus::Pending);
+
+    assert_eq!(
+      db.claim_article(Duration::ZERO)
+        .await
+        .unwrap()
+        .unwrap()
+        .attempts,
+      1,
+    );
+
+    assert!(db.fail_extraction(claimed.article_id).await.unwrap());
+
+    assert_eq!(
+      db.articles(user.user_id, None, 1).await.unwrap()[0].status,
+      ArticleStatus::Failed,
+    );
+
+    assert_eq!(
+      status(&new_article(user.user_id, None)).await,
+      ArticleStatus::Failed,
+    );
+
+    assert_eq!(
+      status(&new_article(user.user_id, Some(content()))).await,
+      ArticleStatus::Extracted,
+    );
+
+    assert_eq!(status(&bare).await, ArticleStatus::Extracted);
+
+    assert_eq!(
+      status(&new_article(user.user_id, None)).await,
+      ArticleStatus::Extracted,
     );
   }
 

@@ -22,6 +22,7 @@ function article(
   return {
     article_id: `00000000-0000-0000-0000-00000000010${index}`,
     url: `https://example.com/${title}`,
+    status: 'extracted',
     title,
     author: null,
     excerpt: null,

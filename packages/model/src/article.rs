@@ -7,6 +7,7 @@ pub struct Article {
   #[cfg_attr(feature = "tsify", tsify(type = "string"))]
   pub article_id: Uuid,
   pub url: String,
+  pub status: ArticleStatus,
   pub title: Option<String>,
   pub author: Option<String>,
   pub excerpt: Option<String>,

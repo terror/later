@@ -21,6 +21,7 @@ mod tests {
         article: Article {
           article_id: Uuid::nil(),
           url: "foo".into(),
+          status: ArticleStatus::Pending,
           title: None,
           author: None,
           excerpt: None,
@@ -45,6 +46,7 @@ mod tests {
       json!({
         "article_id": "00000000-0000-0000-0000-000000000000",
         "url": "foo",
+        "status": "pending",
         "title": null,
         "author": null,
         "excerpt": null,

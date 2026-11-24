@@ -1,3 +1,4 @@
+import { ArticleStatus } from '@/components/article-status';
 import { Progress } from '@/components/ui/progress';
 import { SiteTile } from '@/components/ui/site-tile';
 import { formatSaved } from '@/lib/format';
@@ -58,8 +59,14 @@ export function ArticleRow({
           </span>
         </span>
         <span className='flex items-center gap-3'>
-          <span className='text-muted-foreground min-w-0 truncate text-[13px]'>
-            {meta}
+          <span className='text-muted-foreground flex min-w-0 items-center gap-1.5 text-[13px]'>
+            <span className='truncate'>{meta}</span>
+            {article.status !== 'extracted' && (
+              <>
+                <span aria-hidden>·</span>
+                <ArticleStatus status={article.status} className='shrink-0' />
+              </>
+            )}
           </span>
           {!read && article.progress.scroll_position > 0 && (
             <Progress

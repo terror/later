@@ -1,6 +1,8 @@
 import type { Article, ArticlePage, UpdateArticle } from '@later/types';
 import type { InfiniteData } from '@tanstack/react-query';
 
+export const POLL_INTERVAL = 2000;
+
 export type View = 'inbox' | 'favorites' | 'archive';
 
 export type Sort = 'newest' | 'oldest';
@@ -96,9 +98,65 @@ export function mapPages(
   );
 }
 
+export function prependArticle(
+  data: InfiniteData<ArticlePage> | undefined,
+  article: Article
+): InfiniteData<ArticlePage> | undefined {
+  return (
+    data && {
+      ...data,
+      pages: data.pages.map((page, index) =>
+        index === 0 ? { ...page, articles: [article, ...page.articles] } : page
+      ),
+    }
+  );
+}
+
 export function removeArticle(
   articles: Article[],
   articleId: string
 ): Article[] {
   return articles.filter((article) => article.article_id !== articleId);
+}
+
+export function pendingArticle(
+  articleId: string,
+  url: string,
+  dateSaved: string
+): Article {
+  return {
+    article_id: articleId,
+    url,
+    status: 'pending',
+    title: null,
+    author: null,
+    excerpt: null,
+    site_name: null,
+    lang: null,
+    dir: null,
+    publication_date: null,
+    word_count: null,
+    reading_time_minutes: null,
+    is_archived: false,
+    is_favorited: false,
+    date_saved: dateSaved,
+    date_read: null,
+    progress: { scroll_position: 0, time_spent_seconds: 0 },
+  };
+}
+
+export function replaceArticle(
+  articles: Article[],
+  articleId: string,
+  article: Article
+): Article[] {
+  return articles
+    .filter(({ article_id }) => article_id !== article.article_id)
+    .map((other) => (other.article_id === articleId ? article : other));
+}
+
+export function pollInterval(articles: Article[]): number | false {
+  return articles.some(({ status }) => status === 'pending')
+    ? POLL_INTERVAL
+    : false;
 }

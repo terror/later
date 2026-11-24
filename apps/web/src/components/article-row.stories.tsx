@@ -1,4 +1,4 @@
-import { articles, now } from '../../.storybook/fixtures';
+import { articles, failed, now, pending } from '../../.storybook/fixtures';
 import preview from '../../.storybook/preview';
 import { themes } from '../../.storybook/themes';
 import { ArticleRow } from './article-row';
@@ -29,3 +29,7 @@ export const InProgressActive = meta.story({
 });
 
 export const Read = meta.story({ args: { article: articles[4] } });
+
+export const Pending = meta.story({ args: { article: pending } });
+
+export const Failed = meta.story({ args: { article: failed } });

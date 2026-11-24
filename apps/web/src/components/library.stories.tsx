@@ -2,13 +2,16 @@ import type { Article } from '@later/types';
 import { useCallback, useState } from 'react';
 
 import {
+  extracted,
+  failed,
   articles as fixtures,
   library,
   now,
+  pending,
   user,
 } from '../../.storybook/fixtures';
 import preview from '../../.storybook/preview';
-import { applyUpdate } from '../lib/library';
+import { applyUpdate, pendingArticle } from '../lib/library';
 import { Library } from './library';
 
 function Example({
@@ -67,6 +70,17 @@ function Example({
           applyUpdate(article, { is_read: article.date_read === null }, now)
         )
       }
+      onAddLink={(url) => {
+        const article = pendingArticle(
+          `pending-${url}`,
+          url,
+          new Date(now.getTime() - 60 * 1000).toISOString()
+        );
+
+        setArticles((articles) => articles && [article, ...articles]);
+
+        setTimeout(() => update(article, extracted), 3000);
+      }}
       onDelete={(article) =>
         setArticles(
           (articles) =>
@@ -96,6 +110,11 @@ export const Phone = meta.story({
 
 export const Paginated = meta.story({
   args: { articles: library, pageSize: 10 },
+  globals: { viewport: { value: 'laptop', isRotated: false } },
+});
+
+export const Fetching = meta.story({
+  args: { articles: [pending, failed, ...fixtures] },
   globals: { viewport: { value: 'laptop', isRotated: false } },
 });
 
