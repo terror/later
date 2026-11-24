@@ -1,5 +1,6 @@
 use {
   allowed_origins::AllowedOrigins,
+  anchor::Anchor,
   anyhow::{Context, anyhow},
   api_token::ApiToken,
   async_session::{Session, SessionStore, async_trait, serde_json},
@@ -12,7 +13,7 @@ use {
       Path, Query, State as AppState,
     },
     response::{IntoResponse, Redirect, Response},
-    routing::{get, post, put},
+    routing::{get, patch, post, put},
   },
   axum_extra::{
     TypedHeader,
@@ -21,7 +22,7 @@ use {
   },
   chrono::{DateTime, Utc},
   clap::Parser,
-  db::{ArticleContent, Db, NewArticle},
+  db::{ArticleContent, Db, NewArticle, NewHighlight},
   documentation::Documentation,
   dotenv::dotenv,
   error::{BadRequest, Error, NotFound, Unauthorized},
@@ -86,16 +87,23 @@ use {
   uuid::Uuid,
 };
 
+#[cfg(test)]
+use test_context::TestContext;
+
 mod allowed_origins;
+mod anchor;
 mod api_token;
 mod articles;
 mod auth;
 mod documentation;
 mod error;
 mod extraction;
+mod highlights;
 mod redis_session_store;
 mod server;
 mod state;
+#[cfg(test)]
+mod test_context;
 mod tokens;
 mod user;
 

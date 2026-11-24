@@ -1,6 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 
-import { getArticle, getArticles, getSession } from './api';
+import { getArticle, getArticles, getHighlights, getSession } from './api';
 
 export const sessionQuery = queryOptions({
   queryKey: ['session'],
@@ -17,5 +17,12 @@ export function articleQuery(articleId: string) {
   return queryOptions({
     queryKey: ['articles', articleId],
     queryFn: () => getArticle(articleId),
+  });
+}
+
+export function highlightsQuery(articleId: string) {
+  return queryOptions({
+    queryKey: ['articles', articleId, 'highlights'],
+    queryFn: () => getHighlights(articleId),
   });
 }

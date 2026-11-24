@@ -80,6 +80,26 @@ impl Db {
     )
   }
 
+  pub async fn article_text(
+    &self,
+    user_id: Uuid,
+    article_id: Uuid,
+  ) -> Result<Option<String>> {
+    Ok(
+      sqlx::query_scalar::<_, String>(
+        r#"
+      SELECT COALESCE(text_content, '')
+      FROM articles
+      WHERE user_id = $1 AND article_id = $2
+      "#,
+      )
+      .bind(user_id)
+      .bind(article_id)
+      .fetch_optional(&self.pool)
+      .await?,
+    )
+  }
+
   pub async fn articles(&self, user_id: Uuid) -> Result<Vec<Article>> {
     Ok(
       sqlx::query_as::<_, Article>(
@@ -128,6 +148,51 @@ impl Db {
     Ok(())
   }
 
+  pub async fn create_highlight(
+    &self,
+    highlight: &NewHighlight<'_>,
+  ) -> Result<Option<Highlight>> {
+    Ok(
+      sqlx::query_as::<_, Highlight>(
+        r#"
+      INSERT INTO highlights (
+        article_id,
+        user_id,
+        selected_text,
+        context_before,
+        context_after,
+        start_offset,
+        end_offset
+      )
+      SELECT article_id, user_id, $3, $4, $5, $6, $7
+      FROM articles
+      WHERE user_id = $1 AND article_id = $2
+      RETURNING
+        highlight_id,
+        article_id,
+        selected_text,
+        context_before,
+        context_after,
+        start_offset,
+        end_offset,
+        color,
+        note,
+        created_at,
+        updated_at
+      "#,
+      )
+      .bind(highlight.user_id)
+      .bind(highlight.article_id)
+      .bind(highlight.selected_text)
+      .bind(highlight.context_before)
+      .bind(highlight.context_after)
+      .bind(highlight.start_offset)
+      .bind(highlight.end_offset)
+      .fetch_optional(&self.pool)
+      .await?,
+    )
+  }
+
   pub async fn delete_api_token(&self, token_hash: &[u8]) -> Result<bool> {
     Ok(
       sqlx::query("DELETE FROM api_tokens WHERE token_hash = $1")
@@ -154,6 +219,61 @@ impl Db {
       .await?
       .rows_affected()
         > 0,
+    )
+  }
+
+  pub async fn delete_highlight(
+    &self,
+    user_id: Uuid,
+    article_id: Uuid,
+    highlight_id: Uuid,
+  ) -> Result<bool> {
+    Ok(
+      sqlx::query(
+        r#"
+      DELETE FROM highlights
+      WHERE user_id = $1 AND article_id = $2 AND highlight_id = $3
+      "#,
+      )
+      .bind(user_id)
+      .bind(article_id)
+      .bind(highlight_id)
+      .execute(&self.pool)
+      .await?
+      .rows_affected()
+        > 0,
+    )
+  }
+
+  pub async fn highlights(
+    &self,
+    user_id: Uuid,
+    article_id: Uuid,
+  ) -> Result<Vec<Highlight>> {
+    Ok(
+      sqlx::query_as::<_, Highlight>(
+        r#"
+      SELECT
+        highlight_id,
+        article_id,
+        selected_text,
+        context_before,
+        context_after,
+        start_offset,
+        end_offset,
+        color,
+        note,
+        created_at,
+        updated_at
+      FROM highlights
+      WHERE user_id = $1 AND article_id = $2
+      ORDER BY start_offset, end_offset, created_at
+      "#,
+      )
+      .bind(user_id)
+      .bind(article_id)
+      .fetch_all(&self.pool)
+      .await?,
     )
   }
 
@@ -226,7 +346,19 @@ impl Db {
         word_count,
         reading_time_minutes
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+        CASE
+          WHEN EXISTS (
+            SELECT 1
+            FROM highlights
+            JOIN articles USING (article_id)
+            WHERE articles.user_id = $1 AND articles.normalized_url = $3
+          ) THEN NULL
+          ELSE $12
+        END,
+        $13, $14, $15
+      )
       ON CONFLICT (user_id, normalized_url) DO UPDATE
       SET url = EXCLUDED.url,
         html = COALESCE(EXCLUDED.html, articles.html),
@@ -338,6 +470,45 @@ impl Db {
       .bind(is_archived)
       .bind(is_favorited)
       .bind(is_read)
+      .fetch_optional(&self.pool)
+      .await?,
+    )
+  }
+
+  pub async fn update_highlight(
+    &self,
+    user_id: Uuid,
+    article_id: Uuid,
+    highlight_id: Uuid,
+    color: Option<&str>,
+    note: Option<&str>,
+  ) -> Result<Option<Highlight>> {
+    Ok(
+      sqlx::query_as::<_, Highlight>(
+        r#"
+      UPDATE highlights
+      SET color = COALESCE($4, color),
+        note = CASE WHEN $5::TEXT IS NULL THEN note ELSE NULLIF($5, '') END
+      WHERE user_id = $1 AND article_id = $2 AND highlight_id = $3
+      RETURNING
+        highlight_id,
+        article_id,
+        selected_text,
+        context_before,
+        context_after,
+        start_offset,
+        end_offset,
+        color,
+        note,
+        created_at,
+        updated_at
+      "#,
+      )
+      .bind(user_id)
+      .bind(article_id)
+      .bind(highlight_id)
+      .bind(color)
+      .bind(note)
       .fetch_optional(&self.pool)
       .await?,
     )
@@ -552,6 +723,245 @@ mod tests {
     assert_eq!(
       db.article(user.user_id, article.article_id).await.unwrap(),
       None,
+    );
+  }
+
+  #[tokio::test(flavor = "multi_thread")]
+  async fn highlights() {
+    let TestContext { db, .. } = TestContext::new().await;
+
+    let user = db.upsert_user("foo@bar.com", None).await.unwrap();
+
+    let other = db.upsert_user("bar@baz.com", None).await.unwrap();
+
+    let (article, _) = db
+      .save_article(&new_article(user.user_id, Some(content())))
+      .await
+      .unwrap();
+
+    assert_eq!(
+      db.article_text(user.user_id, article.article_id)
+        .await
+        .unwrap(),
+      Some("baz".into()),
+    );
+
+    assert_eq!(
+      db.article_text(other.user_id, article.article_id)
+        .await
+        .unwrap(),
+      None,
+    );
+
+    let new_highlight = |user_id| NewHighlight {
+      article_id: article.article_id,
+      context_after: "bar",
+      context_before: "foo",
+      end_offset: 3,
+      selected_text: "baz",
+      start_offset: 0,
+      user_id,
+    };
+
+    assert_eq!(
+      db.create_highlight(&new_highlight(other.user_id))
+        .await
+        .unwrap(),
+      None,
+    );
+
+    let highlight = db
+      .create_highlight(&new_highlight(user.user_id))
+      .await
+      .unwrap()
+      .unwrap();
+
+    assert_eq!(
+      highlight,
+      Highlight {
+        highlight_id: highlight.highlight_id,
+        article_id: article.article_id,
+        selected_text: "baz".into(),
+        context_before: Some("foo".into()),
+        context_after: Some("bar".into()),
+        start_offset: 0,
+        end_offset: 3,
+        color: "#FFEB3B".into(),
+        note: None,
+        created_at: highlight.created_at,
+        updated_at: highlight.updated_at,
+      },
+    );
+
+    assert_eq!(
+      sqlx::query(
+        r#"
+        INSERT INTO highlights (
+          article_id,
+          user_id,
+          selected_text,
+          start_offset,
+          end_offset
+        )
+        VALUES ($1, $2, 'baz', 0, 3)
+        "#,
+      )
+      .bind(article.article_id)
+      .bind(other.user_id)
+      .execute(&db.pool)
+      .await
+      .unwrap_err()
+      .to_string(),
+      "error returned from database: insert or update on table \"highlights\" violates foreign key constraint \"highlights_article_id_user_id_fkey\"",
+    );
+
+    assert_eq!(
+      db.highlights(user.user_id, article.article_id)
+        .await
+        .unwrap(),
+      vec![highlight.clone()],
+    );
+
+    assert_eq!(
+      db.highlights(other.user_id, article.article_id)
+        .await
+        .unwrap(),
+      Vec::new(),
+    );
+
+    let update = async |user_id, color, note| {
+      db.update_highlight(
+        user_id,
+        article.article_id,
+        highlight.highlight_id,
+        color,
+        note,
+      )
+      .await
+      .unwrap()
+      .map(|updated| Highlight {
+        updated_at: highlight.updated_at,
+        ..updated
+      })
+    };
+
+    assert_eq!(
+      update(user.user_id, Some("#000000"), Some("bar")).await,
+      Some(Highlight {
+        color: "#000000".into(),
+        note: Some("bar".into()),
+        ..highlight.clone()
+      }),
+    );
+
+    assert_eq!(
+      update(user.user_id, None, None).await,
+      Some(Highlight {
+        color: "#000000".into(),
+        note: Some("bar".into()),
+        ..highlight.clone()
+      }),
+    );
+
+    assert_eq!(
+      update(user.user_id, None, Some("")).await,
+      Some(Highlight {
+        color: "#000000".into(),
+        ..highlight.clone()
+      }),
+    );
+
+    assert_eq!(update(other.user_id, None, Some("baz")).await, None);
+
+    assert!(
+      !db
+        .delete_highlight(
+          other.user_id,
+          article.article_id,
+          highlight.highlight_id
+        )
+        .await
+        .unwrap()
+    );
+
+    assert!(
+      db.delete_highlight(
+        user.user_id,
+        article.article_id,
+        highlight.highlight_id
+      )
+      .await
+      .unwrap()
+    );
+
+    assert_eq!(
+      db.highlights(user.user_id, article.article_id)
+        .await
+        .unwrap(),
+      Vec::new(),
+    );
+  }
+
+  #[tokio::test(flavor = "multi_thread")]
+  async fn resaving_highlighted_article_keeps_content() {
+    let TestContext { db, .. } = TestContext::new().await;
+
+    let user = db.upsert_user("foo@bar.com", None).await.unwrap();
+
+    let save = async |text: &str| {
+      db.save_article(&new_article(
+        user.user_id,
+        Some(ArticleContent {
+          content: format!("<p>{text}</p>"),
+          text_content: text.into(),
+          ..content()
+        }),
+      ))
+      .await
+      .unwrap()
+      .0
+    };
+
+    let content = async |article: &Article| {
+      (
+        db.article(user.user_id, article.article_id)
+          .await
+          .unwrap()
+          .unwrap()
+          .content,
+        db.article_text(user.user_id, article.article_id)
+          .await
+          .unwrap(),
+      )
+    };
+
+    save("foo").await;
+
+    let article = save("bar").await;
+
+    assert_eq!(
+      content(&article).await,
+      (Some("<p>bar</p>".into()), Some("bar".into())),
+    );
+
+    db.create_highlight(&NewHighlight {
+      article_id: article.article_id,
+      context_after: "",
+      context_before: "",
+      end_offset: 3,
+      selected_text: "bar",
+      start_offset: 0,
+      user_id: user.user_id,
+    })
+    .await
+    .unwrap()
+    .unwrap();
+
+    save("baz").await;
+
+    assert_eq!(
+      content(&article).await,
+      (Some("<p>bar</p>".into()), Some("bar".into())),
     );
   }
 

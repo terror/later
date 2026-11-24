@@ -1,9 +1,12 @@
 import type {
   Article,
   ArticleWithContent,
+  CreateHighlight,
   CreatedToken,
+  Highlight,
   ReadingProgress,
   UpdateArticle,
+  UpdateHighlight,
   User,
 } from '@later/types';
 
@@ -78,6 +81,40 @@ export function saveProgress(
 
 export function deleteArticle(articleId: string): Promise<void> {
   return request(`/articles/${articleId}`, { method: 'DELETE' });
+}
+
+export function getHighlights(articleId: string): Promise<Highlight[]> {
+  return request(`/articles/${articleId}/highlights`);
+}
+
+export function createHighlight(
+  articleId: string,
+  range: CreateHighlight
+): Promise<Highlight> {
+  return request(`/articles/${articleId}/highlights`, {
+    method: 'POST',
+    body: JSON.stringify(range),
+  });
+}
+
+export function updateHighlight(
+  articleId: string,
+  highlightId: string,
+  update: UpdateHighlight
+): Promise<Highlight> {
+  return request(`/articles/${articleId}/highlights/${highlightId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(update),
+  });
+}
+
+export function deleteHighlight(
+  articleId: string,
+  highlightId: string
+): Promise<void> {
+  return request(`/articles/${articleId}/highlights/${highlightId}`, {
+    method: 'DELETE',
+  });
 }
 
 export async function createToken(): Promise<string> {

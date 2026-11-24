@@ -40,6 +40,10 @@ impl Modify for GithubOAuthSecurity {
     articles::save,
     articles::save_progress,
     articles::update,
+    highlights::create,
+    highlights::delete,
+    highlights::list,
+    highlights::update,
     auth::login,
     auth::login_authorized,
     auth::exchange,
@@ -52,16 +56,20 @@ impl Modify for GithubOAuthSecurity {
     schemas(
       model::Article,
       model::ArticleWithContent,
+      model::CreateHighlight,
       model::CreatedToken,
+      model::Highlight,
       model::ReadingProgress,
       model::SaveArticle,
       model::UpdateArticle,
+      model::UpdateHighlight,
       model::User
     )
   ),
   tags(
     (name = "articles"),
     (name = "auth", description = "All authentication related endpoints."),
+    (name = "highlights"),
     (name = "tokens"),
   ),
 )]

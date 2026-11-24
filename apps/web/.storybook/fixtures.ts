@@ -1,4 +1,9 @@
-import type { Article, ArticleWithContent, User } from '@later/types';
+import type {
+  Article,
+  ArticleWithContent,
+  Highlight,
+  User,
+} from '@later/types';
 
 export const now = new Date('2026-03-12T15:00:00Z');
 
@@ -124,3 +129,41 @@ export const resumed: ArticleWithContent = {
   content: reading.content?.repeat(4) ?? null,
   progress: { scroll_position: 0.5, time_spent_seconds: 240 },
 };
+
+const readingText = (reading.content ?? '').replace(/<[^>]+>/g, '');
+
+function highlight(
+  index: number,
+  selected_text: string,
+  note: string | null = null
+): Highlight {
+  const start_offset = readingText.indexOf(selected_text);
+
+  const end_offset = start_offset + selected_text.length;
+
+  return {
+    highlight_id: `00000000-0000-0000-0000-00000000020${index}`,
+    article_id: reading.article_id,
+    selected_text,
+    context_before: readingText.slice(
+      Math.max(start_offset - 32, 0),
+      start_offset
+    ),
+    context_after: readingText.slice(end_offset, end_offset + 32),
+    start_offset,
+    end_offset,
+    color: '#FFEB3B',
+    note,
+    created_at: '2026-03-12T14:00:00Z',
+    updated_at: '2026-03-12T14:00:00Z',
+  };
+}
+
+export const highlights: Highlight[] = [
+  highlight(
+    1,
+    'the useful part of an essay is rarely the conclusion',
+    'Worth remembering when skimming.'
+  ),
+  highlight(2, 'Reading slowly is not about reading less.'),
+];

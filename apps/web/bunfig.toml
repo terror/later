@@ -2,3 +2,4 @@
 root = "src"
 coverageDir = "coverage"
 coverageReporter = ["text", "lcov"]
+preload = ["./happydom.ts"]

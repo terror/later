@@ -5,7 +5,12 @@ import {
   useUpdateArticle,
 } from '@/hooks/use-article-mutations';
 import { useAuth } from '@/hooks/use-auth';
-import { articleQuery } from '@/lib/queries';
+import {
+  useCreateHighlight,
+  useDeleteHighlight,
+  useUpdateHighlight,
+} from '@/hooks/use-highlight-mutations';
+import { articleQuery, highlightsQuery } from '@/lib/queries';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -21,6 +26,17 @@ export default function ReaderPage() {
     ...articleQuery(articleId),
     enabled: user !== null && articleId !== '',
   });
+
+  const { data: highlights } = useQuery({
+    ...highlightsQuery(articleId),
+    enabled: user !== null && articleId !== '',
+  });
+
+  const createHighlight = useCreateHighlight(articleId);
+
+  const updateHighlight = useUpdateHighlight(articleId);
+
+  const deleteHighlight = useDeleteHighlight(articleId);
 
   const update = useUpdateArticle();
 
@@ -85,6 +101,12 @@ export default function ReaderPage() {
       onDelete={() =>
         remove.mutate(articleId, { onSuccess: () => navigate('/') })
       }
+      highlights={highlights ?? []}
+      onCreateHighlight={(range) => createHighlight.mutate(range)}
+      onUpdateHighlight={(highlightId, update) =>
+        updateHighlight.mutate({ highlightId, update })
+      }
+      onDeleteHighlight={(highlightId) => deleteHighlight.mutate(highlightId)}
     />
   );
 }
