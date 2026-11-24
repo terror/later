@@ -9,7 +9,7 @@ use {
     body::Body,
     extract::{
       DefaultBodyLimit, FromRef, FromRequestParts, OptionalFromRequestParts,
-      Query, State as AppState,
+      Path, Query, State as AppState,
     },
     response::{IntoResponse, Redirect, Response},
     routing::{get, post},
@@ -24,7 +24,7 @@ use {
   db::{ArticleContent, Db, NewArticle},
   documentation::Documentation,
   dotenv::dotenv,
-  error::{BadRequest, Error, Unauthorized},
+  error::{BadRequest, Error, NotFound, Unauthorized},
   http::{
     HeaderMap, Request, StatusCode,
     header::{self, SET_COOKIE, USER_AGENT},
@@ -83,6 +83,7 @@ use {
     },
   },
   utoipa_scalar::{Scalar, Servable},
+  uuid::Uuid,
 };
 
 mod allowed_origins;

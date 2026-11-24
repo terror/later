@@ -11,6 +11,12 @@ pub(crate) struct SaveArticle {
   url: String,
 }
 
+#[derive(Debug, Deserialize, ToSchema)]
+pub(crate) struct UpdateArticle {
+  is_archived: Option<bool>,
+  is_favorited: Option<bool>,
+}
+
 fn normalize_url(url: &Url) -> Url {
   let mut normalized = url.clone();
 
@@ -31,6 +37,57 @@ fn normalize_url(url: &Url) -> Url {
   }
 
   normalized
+}
+
+#[utoipa::path(
+  delete,
+  path = "/articles/{article_id}",
+  tag = "articles",
+  params(("article_id" = Uuid, Path)),
+  responses(
+    (status = StatusCode::NO_CONTENT),
+    (status = StatusCode::NOT_FOUND),
+    (status = StatusCode::UNAUTHORIZED)
+  )
+)]
+pub(crate) async fn delete(
+  user: User,
+  AppState(db): AppState<Db>,
+  Path(article_id): Path<Uuid>,
+) -> Result<StatusCode> {
+  if db
+    .delete_article(user.user_id, article_id)
+    .await
+    .context("failed to delete article")?
+  {
+    Ok(StatusCode::NO_CONTENT)
+  } else {
+    Err(NotFound.into())
+  }
+}
+
+#[utoipa::path(
+  get,
+  path = "/articles/{article_id}",
+  tag = "articles",
+  params(("article_id" = Uuid, Path)),
+  responses(
+    (status = StatusCode::OK, body = model::ArticleWithContent),
+    (status = StatusCode::NOT_FOUND),
+    (status = StatusCode::UNAUTHORIZED)
+  )
+)]
+pub(crate) async fn get(
+  user: User,
+  AppState(db): AppState<Db>,
+  Path(article_id): Path<Uuid>,
+) -> Result<Json<model::ArticleWithContent>> {
+  Ok(Json(
+    db.article(user.user_id, article_id)
+      .await
+      .context("failed to load article")?
+      .ok_or(NotFound)?,
+  ))
 }
 
 #[utoipa::path(
@@ -109,6 +166,37 @@ pub(crate) async fn save(
   };
 
   Ok((status, Json(article)))
+}
+
+#[utoipa::path(
+  patch,
+  path = "/articles/{article_id}",
+  tag = "articles",
+  params(("article_id" = Uuid, Path)),
+  request_body = UpdateArticle,
+  responses(
+    (status = StatusCode::OK, body = model::Article),
+    (status = StatusCode::NOT_FOUND),
+    (status = StatusCode::UNAUTHORIZED)
+  )
+)]
+pub(crate) async fn update(
+  user: User,
+  AppState(db): AppState<Db>,
+  Path(article_id): Path<Uuid>,
+  Json(request): Json<UpdateArticle>,
+) -> Result<Json<model::Article>> {
+  Ok(Json(
+    db.update_article(
+      user.user_id,
+      article_id,
+      request.is_archived,
+      request.is_favorited,
+    )
+    .await
+    .context("failed to update article")?
+    .ok_or(NotFound)?,
+  ))
 }
 
 #[cfg(test)]

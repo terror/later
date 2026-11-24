@@ -34,8 +34,11 @@ impl Modify for GithubOAuthSecurity {
   ),
   modifiers(&GithubOAuthSecurity),
   paths(
+    articles::delete,
+    articles::get,
     articles::list,
     articles::save,
+    articles::update,
     auth::login,
     auth::login_authorized,
     auth::exchange,
@@ -47,7 +50,9 @@ impl Modify for GithubOAuthSecurity {
   components(
     schemas(
       articles::SaveArticle,
+      articles::UpdateArticle,
       model::Article,
+      model::ArticleWithContent,
       model::User,
       tokens::CreatedToken
     )
