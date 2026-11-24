@@ -25,14 +25,6 @@ pub(crate) type ConfiguredOAuthClient = oauth2::Client<
   oauth2::EndpointSet,
 >;
 
-pub(crate) struct Unauthorized;
-
-impl IntoResponse for Unauthorized {
-  fn into_response(self) -> Response {
-    StatusCode::UNAUTHORIZED.into_response()
-  }
-}
-
 #[derive(Debug, Deserialize)]
 pub(crate) struct AuthRequest {
   code: String,

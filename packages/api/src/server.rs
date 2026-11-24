@@ -83,11 +83,18 @@ impl Server {
           .post(articles::save)
           .layer(DefaultBodyLimit::max(MAX_BODY_BYTES)),
       )
+      .route(
+        "/articles/{article_id}",
+        get(articles::get)
+          .patch(articles::update)
+          .delete(articles::delete),
+      )
       .route("/auth/authorized", get(auth::login_authorized))
       .route("/auth/exchange", get(auth::exchange))
       .route("/auth/login", get(auth::login))
       .route("/auth/logout", get(auth::logout))
       .route("/auth/session", get(auth::session))
+      .route("/tokens", post(tokens::create).delete(tokens::delete))
       .merge(Scalar::with_url("/", Documentation::openapi()));
 
     let trace_layer = TraceLayer::new_for_http()

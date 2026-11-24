@@ -34,24 +34,33 @@ impl Modify for GithubOAuthSecurity {
   ),
   modifiers(&GithubOAuthSecurity),
   paths(
+    articles::delete,
+    articles::get,
     articles::list,
     articles::save,
+    articles::update,
     auth::login,
     auth::login_authorized,
     auth::exchange,
     auth::logout,
     auth::session,
+    tokens::create,
+    tokens::delete,
   ),
   components(
     schemas(
       articles::SaveArticle,
+      articles::UpdateArticle,
       model::Article,
-      model::User
+      model::ArticleWithContent,
+      model::User,
+      tokens::CreatedToken
     )
   ),
   tags(
     (name = "articles"),
     (name = "auth", description = "All authentication related endpoints."),
+    (name = "tokens"),
   ),
 )]
 pub(crate) struct Documentation;
