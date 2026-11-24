@@ -10,6 +10,7 @@ const meta = preview.meta({
     article: articles[0],
     onToggleFavorite: fn(),
     onToggleArchive: fn(),
+    onToggleRead: fn(),
     onDelete: fn(),
   },
   title: 'Patterns/ArticleInfo',
@@ -18,3 +19,7 @@ const meta = preview.meta({
 export const Default = meta.story({});
 
 export const Favorited = meta.story({ args: { article: articles[1] } });
+
+export const InProgress = meta.story({ args: { article: articles[2] } });
+
+export const Read = meta.story({ args: { article: articles[4] } });

@@ -60,6 +60,30 @@ test('toggles favorite and archive', async ({ page, baseURL }) => {
   ).toBeVisible();
 });
 
+test('toggles read', async ({ page }) => {
+  await page.goto(`/read/${foo.article_id}`);
+
+  const read = page.waitForRequest((request) => request.method() === 'PATCH');
+
+  await header(page).getByRole('button', { name: 'Mark as read' }).click();
+
+  expect((await read).postDataJSON()).toEqual({ is_read: true });
+
+  await expect(
+    header(page).getByRole('button', { name: 'Mark as unread' })
+  ).toHaveAttribute('aria-pressed', 'true');
+
+  const unread = page.waitForRequest((request) => request.method() === 'PATCH');
+
+  await header(page).getByRole('button', { name: 'Mark as unread' }).click();
+
+  expect((await unread).postDataJSON()).toEqual({ is_read: false });
+
+  await expect(
+    header(page).getByRole('button', { name: 'Mark as read' })
+  ).toHaveAttribute('aria-pressed', 'false');
+});
+
 test('shows an error when the article cannot be loaded', async ({ page }) => {
   await page.goto('/read/foo');
 

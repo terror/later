@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+  applyUpdate,
   countArticles,
   filterArticles,
   patchArticle,
@@ -25,6 +26,7 @@ function article(fields: Partial<Article>): Article {
     is_favorited: false,
     date_saved: '2026-03-12T00:00:00Z',
     date_read: null,
+    progress: { scroll_position: 0, time_spent_seconds: 0 },
     ...fields,
   };
 }
@@ -84,11 +86,45 @@ describe('countArticles', () => {
 
 describe('patchArticle', () => {
   test('updates only the matching article', () => {
-    expect(patchArticle(articles, 'b', { is_archived: true })).toEqual([
+    expect(
+      patchArticle(articles, 'b', (article) => ({
+        ...article,
+        is_archived: true,
+      }))
+    ).toEqual([
       articles[0],
       { ...articles[1], is_archived: true },
       articles[2],
     ]);
+  });
+});
+
+describe('applyUpdate', () => {
+  test('applies fields and maps is_read to date_read', () => {
+    const now = new Date('2026-03-12T15:00:00Z');
+
+    const case_ = (
+      fields: Partial<Article>,
+      update: Parameters<typeof applyUpdate>[1],
+      expected: Partial<Article>
+    ) =>
+      expect(applyUpdate(article(fields), update, now)).toEqual(
+        article(expected)
+      );
+
+    case_({}, { is_favorited: true }, { is_favorited: true });
+    case_({}, { is_read: true }, { date_read: '2026-03-12T15:00:00.000Z' });
+    case_(
+      { date_read: '2026-03-10T00:00:00Z' },
+      { is_read: true },
+      { date_read: '2026-03-10T00:00:00Z' }
+    );
+    case_({ date_read: '2026-03-10T00:00:00Z' }, { is_read: false }, {});
+    case_(
+      { date_read: '2026-03-10T00:00:00Z' },
+      { is_archived: true },
+      { date_read: '2026-03-10T00:00:00Z', is_archived: true }
+    );
   });
 });
 

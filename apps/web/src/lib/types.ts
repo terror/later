@@ -22,6 +22,12 @@ export interface Article {
   is_favorited: boolean;
   date_saved: string;
   date_read: string | null;
+  progress: ReadingProgress;
+}
+
+export interface ReadingProgress {
+  scroll_position: number;
+  time_spent_seconds: number;
 }
 
 export interface ArticleWithContent extends Article {

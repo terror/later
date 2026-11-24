@@ -8,8 +8,10 @@ use {
 
 mod article;
 mod article_with_content;
+mod reading_progress;
 mod user;
 
 pub use {
-  article::Article, article_with_content::ArticleWithContent, user::User,
+  article::Article, article_with_content::ArticleWithContent,
+  reading_progress::ReadingProgress, user::User,
 };

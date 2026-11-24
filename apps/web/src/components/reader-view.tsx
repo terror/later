@@ -2,33 +2,118 @@ import { ArticleInfo } from '@/components/article-info';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatDate } from '@/lib/format';
+import { crossedEnd, scrollOffset, scrollPosition } from '@/lib/reading';
 import type { ArticleWithContent } from '@/lib/types';
 import { articleSource, cn } from '@/lib/utils';
 import {
   Archive,
   ArchiveRestore,
   ArrowLeft,
+  Circle,
+  CircleCheck,
   ExternalLink,
   PanelRight,
   Star,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+
+const PROGRESS_DEBOUNCE_MS = 1000;
 
 export function ReaderView({
   article,
   error = false,
   onToggleFavorite,
   onToggleArchive,
+  onToggleRead,
+  onProgress,
   onDelete,
 }: {
   article: ArticleWithContent | null;
   error?: boolean;
   onToggleFavorite: () => void;
   onToggleArchive: () => void;
+  onToggleRead: () => void;
+  onProgress: (scrollPosition: number) => void;
   onDelete: () => void;
 }) {
   const [infoOpen, setInfoOpen] = useState(true);
+
+  const main = useRef<HTMLElement>(null);
+
+  const onProgressRef = useRef(onProgress);
+
+  const tracking = useRef({
+    articleId: null as string | null,
+    markedRead: false,
+    position: 0,
+    timer: null as number | null,
+  });
+
+  useEffect(() => {
+    onProgressRef.current = onProgress;
+  });
+
+  useLayoutEffect(() => {
+    const state = tracking.current;
+
+    if (!article || !main.current || state.articleId === article.article_id) {
+      return;
+    }
+
+    state.articleId = article.article_id;
+    state.markedRead = false;
+    state.position = article.progress.scroll_position;
+
+    main.current.scrollTop = scrollOffset(
+      article.progress.scroll_position,
+      main.current
+    );
+  }, [article]);
+
+  useEffect(() => {
+    const state = tracking.current;
+
+    return () => {
+      if (state.timer !== null) {
+        window.clearTimeout(state.timer);
+        state.timer = null;
+        onProgressRef.current(state.position);
+      }
+    };
+  }, []);
+
+  const onScroll = () => {
+    const state = tracking.current;
+
+    if (!article || !main.current || state.articleId !== article.article_id) {
+      return;
+    }
+
+    const previous = state.position;
+
+    state.position = scrollPosition(main.current);
+
+    if (
+      article.date_read === null &&
+      !state.markedRead &&
+      crossedEnd(previous, state.position)
+    ) {
+      state.markedRead = true;
+      onToggleRead();
+    }
+
+    if (state.timer !== null) {
+      window.clearTimeout(state.timer);
+    }
+
+    state.timer = window.setTimeout(() => {
+      state.timer = null;
+      onProgressRef.current(state.position);
+    }, PROGRESS_DEBOUNCE_MS);
+  };
+
+  const read = article !== null && article.date_read !== null;
 
   const byline = article
     ? [
@@ -60,6 +145,16 @@ export function ReaderView({
               onClick={onToggleFavorite}
             >
               <Star className={cn(article.is_favorited && 'fill-current')} />
+            </Button>
+            <Button
+              variant='ghost'
+              size='icon'
+              aria-label={read ? 'Mark as unread' : 'Mark as read'}
+              aria-pressed={read}
+              title={read ? 'Mark as unread' : 'Mark as read'}
+              onClick={onToggleRead}
+            >
+              {read ? <CircleCheck /> : <Circle />}
             </Button>
             <Button
               variant='ghost'
@@ -96,7 +191,11 @@ export function ReaderView({
         )}
       </header>
       <div className='flex min-h-0 flex-1'>
-        <main className='min-w-0 flex-1 overflow-y-auto px-6 pt-8 pb-24 md:px-8 md:pt-12'>
+        <main
+          ref={main}
+          onScroll={onScroll}
+          className='min-w-0 flex-1 overflow-y-auto px-6 pt-8 pb-24 md:px-8 md:pt-12'
+        >
           {error ? (
             <EmptyState
               title='This article couldn’t be loaded.'
@@ -147,6 +246,7 @@ export function ReaderView({
             showRead={false}
             onToggleFavorite={onToggleFavorite}
             onToggleArchive={onToggleArchive}
+            onToggleRead={onToggleRead}
             onDelete={onDelete}
           />
         )}
