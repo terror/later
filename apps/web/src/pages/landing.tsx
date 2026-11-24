@@ -1,58 +1,10 @@
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { getLoginUrl } from '@/lib/api';
-import {
-  ArrowUpRight,
-  BookOpen,
-  Code,
-  Github,
-  Inbox,
-  type LucideIcon,
-  MonitorSmartphone,
-  MousePointerClick,
-  Search,
-} from 'lucide-react';
+import { ArrowUpRight, Github } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const REPOSITORY_URL = 'https://github.com/terror/later';
-
-const FEATURES: { icon: LucideIcon; title: string; description: string }[] = [
-  {
-    icon: MousePointerClick,
-    title: 'Save in one click',
-    description:
-      'The browser extension saves the page you’re on, exactly as you see it, even when it’s behind a sign-in.',
-  },
-  {
-    icon: BookOpen,
-    title: 'A calm place to read',
-    description:
-      'Articles are pulled out of the page into clean text, without the clutter that surrounds them.',
-  },
-  {
-    icon: Inbox,
-    title: 'Inbox, favorites, archive',
-    description:
-      'Keep what’s next in your inbox, star the pieces worth keeping, and archive the rest.',
-  },
-  {
-    icon: Search,
-    title: 'Find it again',
-    description: 'Search your library by title, site, or author.',
-  },
-  {
-    icon: MonitorSmartphone,
-    title: 'On every screen',
-    description:
-      'Works on your laptop and your phone, and follows your light or dark setting.',
-  },
-  {
-    icon: Code,
-    title: 'Open source',
-    description:
-      'Built in the open with Rust and React. Read the code, or run it yourself.',
-  },
-];
 
 const STEPS = [
   {
@@ -77,9 +29,6 @@ export default function LandingPage() {
           <Logo />
         </Link>
         <nav aria-label='Primary' className='flex items-center gap-1'>
-          <Button asChild variant='ghost' className='max-sm:hidden'>
-            <a href='#features'>Features</a>
-          </Button>
           <Button asChild variant='ghost' className='max-sm:hidden'>
             <a href={REPOSITORY_URL}>GitHub</a>
           </Button>
@@ -122,33 +71,6 @@ export default function LandingPage() {
               className='h-auto w-full'
             />
           </picture>
-        </section>
-        <section
-          id='features'
-          className='mx-auto max-w-6xl scroll-mt-8 px-6 pt-28 sm:px-10'
-        >
-          <h2 className='max-w-[22ch] text-3xl leading-tight font-semibold tracking-[-0.035em] text-pretty sm:text-4xl'>
-            Everything you need to read later,{' '}
-            <span className='text-muted-foreground'>and nothing else.</span>
-          </h2>
-          <ul className='mt-12 grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] gap-4'>
-            {FEATURES.map(({ icon: Icon, title, description }) => (
-              <li
-                key={title}
-                className='flex flex-col gap-3 rounded-2xl bg-card p-6'
-              >
-                <span className='flex size-9 items-center justify-center rounded-lg bg-background'>
-                  <Icon className='size-[18px]' aria-hidden />
-                </span>
-                <h3 className='text-[15px] font-semibold tracking-[-0.012em]'>
-                  {title}
-                </h3>
-                <p className='text-sm leading-relaxed text-muted-foreground'>
-                  {description}
-                </p>
-              </li>
-            ))}
-          </ul>
         </section>
         <section className='mx-auto max-w-6xl px-6 pt-28 sm:px-10'>
           <h2 className='text-3xl font-semibold tracking-[-0.035em] sm:text-4xl'>
