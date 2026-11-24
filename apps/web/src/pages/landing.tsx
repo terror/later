@@ -71,7 +71,7 @@ const STEPS = [
 
 export default function LandingPage() {
   return (
-    <div className='bg-background text-foreground min-h-screen antialiased'>
+    <div className='min-h-screen bg-background text-foreground antialiased'>
       <header className='mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-6 sm:px-10'>
         <Link to='/' aria-label='later home'>
           <Logo />
@@ -135,15 +135,15 @@ export default function LandingPage() {
             {FEATURES.map(({ icon: Icon, title, description }) => (
               <li
                 key={title}
-                className='bg-card flex flex-col gap-3 rounded-2xl p-6'
+                className='flex flex-col gap-3 rounded-2xl bg-card p-6'
               >
-                <span className='bg-background flex size-9 items-center justify-center rounded-lg'>
+                <span className='flex size-9 items-center justify-center rounded-lg bg-background'>
                   <Icon className='size-[18px]' aria-hidden />
                 </span>
                 <h3 className='text-[15px] font-semibold tracking-[-0.012em]'>
                   {title}
                 </h3>
-                <p className='text-muted-foreground text-sm leading-relaxed'>
+                <p className='text-sm leading-relaxed text-muted-foreground'>
                   {description}
                 </p>
               </li>
@@ -157,19 +157,19 @@ export default function LandingPage() {
           <ol className='mt-12 grid grid-cols-[repeat(auto-fit,minmax(min(260px,100%),1fr))] gap-8'>
             {STEPS.map(({ title, description }, index) => (
               <li key={title} className='flex flex-col gap-2'>
-                <span className='bg-muted flex size-8 items-center justify-center rounded-full text-[13px] font-semibold tabular-nums'>
+                <span className='flex size-8 items-center justify-center rounded-full bg-muted text-[13px] font-semibold tabular-nums'>
                   {index + 1}
                 </span>
                 <h3 className='mt-2 text-[15px] font-semibold tracking-[-0.012em]'>
                   {title}
                 </h3>
-                <p className='text-muted-foreground text-sm'>{description}</p>
+                <p className='text-sm text-muted-foreground'>{description}</p>
               </li>
             ))}
           </ol>
         </section>
         <section className='mx-auto max-w-6xl px-6 pt-28 pb-24 sm:px-10'>
-          <div className='bg-card flex flex-col items-start gap-6 rounded-3xl px-8 py-12 sm:flex-row sm:items-center sm:justify-between sm:px-12'>
+          <div className='flex flex-col items-start gap-6 rounded-3xl bg-card px-8 py-12 sm:flex-row sm:items-center sm:justify-between sm:px-12'>
             <h2 className='text-2xl font-semibold tracking-[-0.03em] sm:text-3xl'>
               Start your reading list.
             </h2>
@@ -182,7 +182,7 @@ export default function LandingPage() {
           </div>
         </section>
       </main>
-      <footer className='text-muted-foreground mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 pb-12 text-sm sm:px-10'>
+      <footer className='mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 pb-12 text-sm text-muted-foreground sm:px-10'>
         <Logo className='text-foreground' />
         <nav aria-label='Footer' className='flex gap-6'>
           <a href={REPOSITORY_URL} className='hover:text-foreground'>

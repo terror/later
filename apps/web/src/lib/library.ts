@@ -14,14 +14,15 @@ export const VIEWS: { value: View; label: string }[] = [
 ];
 
 export function inView(article: Article, view: View): boolean {
-  switch (view) {
-    case 'inbox':
-      return !article.is_archived;
-    case 'favorites':
-      return article.is_favorited;
-    case 'archive':
-      return article.is_archived;
+  if (view === 'inbox') {
+    return !article.is_archived;
   }
+
+  if (view === 'favorites') {
+    return article.is_favorited;
+  }
+
+  return article.is_archived;
 }
 
 export function countArticles(articles: Article[]): Record<View, number> {
@@ -50,7 +51,7 @@ export function filterArticles(
           (value) => value?.toLowerCase().includes(needle)
         )
     )
-    .sort(
+    .toSorted(
       (a, b) =>
         direction * (Date.parse(a.date_saved) - Date.parse(b.date_saved))
     );

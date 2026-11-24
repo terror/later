@@ -10,7 +10,7 @@ export function insertHighlight(
   highlights: Highlight[],
   highlight: Highlight
 ): Highlight[] {
-  return [...highlights, highlight].sort(compareHighlights);
+  return [...highlights, highlight].toSorted(compareHighlights);
 }
 
 export function patchHighlight(

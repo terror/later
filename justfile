@@ -13,6 +13,10 @@ default:
 clippy:
   ./bin/clippy
 
+[group: 'lint']
+lint:
+  bun run lint
+
 [group: 'desktop']
 [working-directory: 'apps/desktop']
 desktop:

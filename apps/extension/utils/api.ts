@@ -19,13 +19,11 @@ export async function request(
     throw new UnauthorizedError();
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: {
-      ...init.headers,
-      Authorization: `Bearer ${value}`,
-    },
-  });
+  const headers = new Headers(init.headers);
+
+  headers.set('Authorization', `Bearer ${value}`);
+
+  const response = await fetch(`${API_URL}${path}`, { ...init, headers });
 
   if (response.status === 401) {
     await token.removeValue();
@@ -47,7 +45,7 @@ export async function savePage(): Promise<string | null> {
       target: { tabId: tab.id },
       func: () => document.documentElement.outerHTML,
     })
-    .then(([result]) => result?.result as string | undefined)
+    .then(([result]) => result?.result)
     .catch(() => undefined);
 
   const response = await request('/articles', {

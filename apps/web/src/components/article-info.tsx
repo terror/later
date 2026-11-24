@@ -60,13 +60,13 @@ export function ArticleInfo({
     <aside
       aria-label='Article details'
       className={cn(
-        'bg-card flex w-[340px] shrink-0 flex-col gap-5 overflow-y-auto p-6',
+        'flex w-[340px] shrink-0 flex-col gap-5 overflow-y-auto bg-card p-6',
         className
       )}
     >
       <div className='flex items-center gap-2.5'>
         <SiteTile name={source} size='sm' className='bg-background' />
-        <span className='text-muted-foreground truncate text-[13px]'>
+        <span className='truncate text-[13px] text-muted-foreground'>
           {source}
         </span>
       </div>
@@ -75,17 +75,17 @@ export function ArticleInfo({
           {article.title ?? article.url}
         </h2>
         {article.excerpt && (
-          <p className='text-muted-foreground text-[13px] leading-relaxed'>
+          <p className='text-[13px] leading-relaxed text-muted-foreground'>
             {article.excerpt}
           </p>
         )}
       </div>
       {article.status !== 'extracted' && (
-        <p className='bg-background text-muted-foreground rounded-xl p-3.5 text-[13px]'>
+        <p className='rounded-xl bg-background p-3.5 text-[13px] text-muted-foreground'>
           <ArticleStatus status={article.status} />
         </p>
       )}
-      <dl className='bg-background flex flex-col gap-2.5 rounded-xl p-3.5 text-[13px]'>
+      <dl className='flex flex-col gap-2.5 rounded-xl bg-background p-3.5 text-[13px]'>
         {details.map(([term, description]) => (
           <div key={term} className='flex justify-between gap-3'>
             <dt className='text-muted-foreground'>{term}</dt>
@@ -93,7 +93,7 @@ export function ArticleInfo({
           </div>
         ))}
       </dl>
-      <div className='bg-background flex flex-col gap-3 rounded-xl p-3.5 text-[13px]'>
+      <div className='flex flex-col gap-3 rounded-xl bg-background p-3.5 text-[13px]'>
         <div className='flex justify-between gap-3'>
           <span>{readingStatus(article)}</span>
           {timeSpent && (

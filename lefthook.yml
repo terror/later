@@ -1,8 +1,8 @@
 pre-commit:
   parallel: true
   jobs:
-    - name: prettier
-      run: bun prettier --write --ignore-unknown {staged_files}
+    - name: oxfmt
+      run: bun oxfmt --no-error-on-unmatched-pattern {staged_files}
       stage_fixed: true
     - name: rustfmt
       glob: '*.rs'

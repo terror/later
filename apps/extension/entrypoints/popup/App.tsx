@@ -6,6 +6,10 @@ import { saveStatus } from '@/lib/save';
 import { WEB_URL } from '@/utils/api';
 import { useEffect } from 'react';
 
+const connect = () => {
+  void browser.runtime.sendMessage('connect');
+};
+
 export default function App() {
   const connected = useConnected();
 
@@ -22,10 +26,6 @@ export default function App() {
   }, [connected, mutate]);
 
   const status = saveStatus(save);
-
-  const connect = () => {
-    browser.runtime.sendMessage('connect');
-  };
 
   if (connected === null) {
     return null;

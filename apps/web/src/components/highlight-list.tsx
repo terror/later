@@ -10,12 +10,12 @@ export function HighlightList({
 }) {
   return (
     <section aria-label='Highlights' className='flex flex-col gap-2.5'>
-      <h3 className='text-muted-foreground text-[13px]'>
+      <h3 className='text-[13px] text-muted-foreground'>
         Highlights
         {highlights.length > 0 && ` · ${highlights.length}`}
       </h3>
       {highlights.length === 0 ? (
-        <p className='text-faint text-[13px]'>
+        <p className='text-[13px] text-faint'>
           Select text in the article to highlight it.
         </p>
       ) : (
@@ -25,7 +25,7 @@ export function HighlightList({
               <button
                 type='button'
                 onClick={() => onSelect(highlight)}
-                className='bg-background hover:bg-muted focus-visible:ring-ring/30 flex w-full cursor-pointer flex-col gap-1.5 rounded-xl p-3.5 text-left text-[13px] leading-relaxed transition-colors outline-none focus-visible:ring-2'
+                className='flex w-full cursor-pointer flex-col gap-1.5 rounded-xl bg-background p-3.5 text-left text-[13px] leading-relaxed transition-colors outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/30'
               >
                 <span className='line-clamp-4'>
                   <mark

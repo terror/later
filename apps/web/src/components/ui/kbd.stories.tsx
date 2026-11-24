@@ -6,7 +6,7 @@ const meta = preview.meta({
   args: { children: '/' },
   decorators: [
     (Story) => (
-      <div className='bg-card rounded-lg p-3'>
+      <div className='rounded-lg bg-card p-3'>
         <Story />
       </div>
     ),

@@ -13,7 +13,7 @@ describe('cn', () => {
         'px-2',
         null,
         undefined,
-        false && 'hidden',
+        false,
         ['text-sm', { 'font-semibold': true }],
         { 'bg-red-500': false, 'text-blue-500': true }
       )

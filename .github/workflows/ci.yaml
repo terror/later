@@ -51,7 +51,6 @@ jobs:
         run: bun run fmt-check
 
       - name: Lint
-        working-directory: apps/web
         run: bun run lint
 
       - name: Build

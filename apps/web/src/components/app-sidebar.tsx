@@ -35,7 +35,7 @@ export function AppSidebar({
   return (
     <aside
       className={cn(
-        'bg-sidebar flex w-62 shrink-0 flex-col gap-5 px-3 py-3.5',
+        'flex w-62 shrink-0 flex-col gap-5 bg-sidebar px-3 py-3.5',
         className
       )}
     >
@@ -59,7 +59,7 @@ export function AppSidebar({
         <div className='flex items-center gap-2.5 rounded-lg py-1.5 pl-1.5'>
           <span
             aria-hidden
-            className='bg-muted flex size-[30px] shrink-0 items-center justify-center rounded-full text-xs font-semibold'
+            className='flex size-[30px] shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold'
           >
             {initials(user)}
           </span>
@@ -68,7 +68,7 @@ export function AppSidebar({
               {user.name ?? user.email}
             </span>
             {user.name && (
-              <span className='text-muted-foreground truncate text-xs'>
+              <span className='truncate text-xs text-muted-foreground'>
                 {user.email}
               </span>
             )}

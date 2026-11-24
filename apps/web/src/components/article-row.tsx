@@ -39,7 +39,7 @@ export function ArticleRow({
       onMouseEnter={onActivate}
       onFocus={onActivate}
       className={cn(
-        'focus-visible:ring-ring/15 flex gap-3.5 rounded-xl px-3 py-3.5 transition-colors outline-none focus-visible:ring-2 md:px-4',
+        'flex gap-3.5 rounded-xl px-3 py-3.5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/15 md:px-4',
         active ? 'bg-muted' : 'hover:bg-card'
       )}
     >
@@ -54,12 +54,12 @@ export function ArticleRow({
           >
             {article.title ?? article.url}
           </span>
-          <span className='text-muted-foreground shrink-0 text-xs'>
+          <span className='shrink-0 text-xs text-muted-foreground'>
             {formatSaved(article.date_saved, now)}
           </span>
         </span>
         <span className='flex items-center gap-3'>
-          <span className='text-muted-foreground flex min-w-0 items-center gap-1.5 text-[13px]'>
+          <span className='flex min-w-0 items-center gap-1.5 text-[13px] text-muted-foreground'>
             <span className='truncate'>{meta}</span>
             {article.status !== 'extracted' && (
               <>
@@ -77,7 +77,7 @@ export function ArticleRow({
           )}
         </span>
         {article.excerpt && (
-          <span className='text-muted-foreground line-clamp-2 hidden text-[13px] leading-normal md:block'>
+          <span className='hidden text-[13px] leading-normal text-muted-foreground md:line-clamp-2'>
             {article.excerpt}
           </span>
         )}
