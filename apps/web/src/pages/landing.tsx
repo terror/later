@@ -1,7 +1,5 @@
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
-import { getLoginUrl } from '@/lib/api';
-import { ArrowUpRight, Github } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const REPOSITORY_URL = 'https://github.com/terror/later';
@@ -30,20 +28,6 @@ export default function LandingPage() {
               and keeps them until you&rsquo;re ready to read.
             </span>
           </h1>
-          <div className='mt-10 flex flex-wrap items-center gap-3'>
-            <Button asChild size='lg'>
-              <a href={getLoginUrl()}>
-                <Github />
-                Continue with GitHub
-              </a>
-            </Button>
-            <Button asChild size='lg' variant='ghost'>
-              <a href={REPOSITORY_URL}>
-                View the source
-                <ArrowUpRight />
-              </a>
-            </Button>
-          </div>
         </section>
         <section className='mx-auto max-w-6xl px-4 pb-24 sm:px-8'>
           <picture>
