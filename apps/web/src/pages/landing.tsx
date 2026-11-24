@@ -6,21 +6,6 @@ import { Link } from 'react-router-dom';
 
 const REPOSITORY_URL = 'https://github.com/terror/later';
 
-const STEPS = [
-  {
-    title: 'Sign in with GitHub',
-    description: 'No new password to remember.',
-  },
-  {
-    title: 'Connect the extension',
-    description: 'Approve it once and it stays signed in.',
-  },
-  {
-    title: 'Save now, read later',
-    description: 'Pick up where you left off on any device.',
-  },
-];
-
 export default function LandingPage() {
   return (
     <div className='min-h-screen bg-background text-foreground antialiased'>
@@ -71,24 +56,6 @@ export default function LandingPage() {
               className='h-auto w-full'
             />
           </picture>
-        </section>
-        <section className='mx-auto max-w-6xl px-6 pt-28 sm:px-10'>
-          <h2 className='text-3xl font-semibold tracking-[-0.035em] sm:text-4xl'>
-            How it works
-          </h2>
-          <ol className='mt-12 grid grid-cols-[repeat(auto-fit,minmax(min(260px,100%),1fr))] gap-8'>
-            {STEPS.map(({ title, description }, index) => (
-              <li key={title} className='flex flex-col gap-2'>
-                <span className='flex size-8 items-center justify-center rounded-full bg-muted text-[13px] font-semibold tabular-nums'>
-                  {index + 1}
-                </span>
-                <h3 className='mt-2 text-[15px] font-semibold tracking-[-0.012em]'>
-                  {title}
-                </h3>
-                <p className='text-sm text-muted-foreground'>{description}</p>
-              </li>
-            ))}
-          </ol>
         </section>
         <section className='mx-auto max-w-6xl px-6 pt-28 pb-24 sm:px-10'>
           <div className='flex flex-col items-start gap-6 rounded-3xl bg-card px-8 py-12 sm:flex-row sm:items-center sm:justify-between sm:px-12'>
