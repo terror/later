@@ -21,14 +21,14 @@ export default function SignInPage() {
   }
 
   return (
-    <div className='bg-background text-foreground flex min-h-screen flex-col px-6 pt-10 pb-14 antialiased sm:px-12'>
+    <div className='flex min-h-screen flex-col bg-background px-6 pt-10 pb-14 text-foreground antialiased sm:px-12'>
       <header className='flex items-center justify-between gap-4'>
         <Link to='/' aria-label='later home'>
           <Logo />
         </Link>
         <Link
           to='/'
-          className='text-muted-foreground flex h-11 items-center gap-1.5 text-[15px] font-medium'
+          className='flex h-11 items-center gap-1.5 text-[15px] font-medium text-muted-foreground'
         >
           <ArrowLeft className='size-4' aria-hidden />
           Back
@@ -41,12 +41,12 @@ export default function SignInPage() {
         </h1>
         <a
           href={getLoginUrl()}
-          className='bg-primary text-primary-foreground mt-12 flex h-13 items-center gap-2.5 rounded-xl px-6 text-base font-medium'
+          className='mt-12 flex h-13 items-center gap-2.5 rounded-xl bg-primary px-6 text-base font-medium text-primary-foreground'
         >
           <Github className='size-[18px]' aria-hidden />
           Continue with GitHub
         </a>
-        <p className='text-muted-foreground mt-5 text-sm'>
+        <p className='mt-5 text-sm text-muted-foreground'>
           New here? Signing in creates your account.
         </p>
       </main>

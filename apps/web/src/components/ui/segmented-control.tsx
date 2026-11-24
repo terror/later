@@ -17,7 +17,7 @@ export function SegmentedControl<T extends string>({
     <div
       role='tablist'
       aria-label={label}
-      className={cn('bg-card flex rounded-[10px] p-[3px]', className)}
+      className={cn('flex rounded-[10px] bg-card p-[3px]', className)}
     >
       {options.map((option) => (
         <button
@@ -29,7 +29,7 @@ export function SegmentedControl<T extends string>({
           className={cn(
             'h-8 flex-1 cursor-pointer rounded-lg text-[13px] font-medium transition-colors',
             option.value === value
-              ? 'bg-background text-foreground dark:bg-muted shadow-[0_1px_2px_rgb(0_0_0/0.06)]'
+              ? 'bg-background text-foreground shadow-[0_1px_2px_rgb(0_0_0/0.06)] dark:bg-muted'
               : 'text-muted-foreground hover:text-foreground'
           )}
         >

@@ -29,9 +29,7 @@
     "import/no-unassigned-import": [
       "error",
       {
-        "allow": [
-          "**/*.css"
-        ]
+        "allow": ["**/*.css"]
       }
     ],
     "react/exhaustive-deps": "error",
@@ -60,18 +58,13 @@
       }
     },
     {
-      "files": [
-        "**/*.stories.tsx",
-        "apps/web/.storybook/**"
-      ],
+      "files": ["**/*.stories.tsx", "apps/web/.storybook/**"],
       "rules": {
         "react/only-export-components": "off"
       }
     }
   ],
-  "jsPlugins": [
-    "oxlint-tailwindcss"
-  ],
+  "jsPlugins": ["oxlint-tailwindcss"],
   "settings": {
     "tailwindcss": {
       "entryPoint": "apps/web/src/index.css"

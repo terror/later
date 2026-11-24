@@ -22,7 +22,7 @@ export function NavItem({
       className={cn(
         'flex h-[34px] w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 text-left text-sm transition-colors',
         active
-          ? 'bg-muted text-foreground font-medium'
+          ? 'bg-muted font-medium text-foreground'
           : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
         className
       )}
@@ -31,7 +31,7 @@ export function NavItem({
       <Icon className='size-4 shrink-0' aria-hidden />
       <span className='flex-1 truncate'>{label}</span>
       {count !== undefined && (
-        <span className='text-muted-foreground text-xs tabular-nums'>
+        <span className='text-xs text-muted-foreground tabular-nums'>
           {count}
         </span>
       )}

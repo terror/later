@@ -12,9 +12,9 @@ function Shapes() {
     <div className='flex gap-6'>
       {RADII.map(([name, className, use]) => (
         <div key={name} className='flex w-36 flex-col gap-2 text-sm'>
-          <span className={`bg-muted h-20 ${className}`} />
+          <span className={`h-20 bg-muted ${className}`} />
           <span className='font-medium'>{name}</span>
-          <span className='text-muted-foreground text-[13px]'>{use}</span>
+          <span className='text-[13px] text-muted-foreground'>{use}</span>
         </div>
       ))}
     </div>

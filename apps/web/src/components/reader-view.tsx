@@ -141,7 +141,7 @@ export function ReaderView({
     : [];
 
   return (
-    <div className='bg-background text-foreground flex h-dvh flex-col'>
+    <div className='flex h-dvh flex-col bg-background text-foreground'>
       <header className='flex h-14 shrink-0 items-center gap-3 px-3 md:px-4'>
         <Button asChild variant='ghost'>
           <Link to='/'>
@@ -149,7 +149,7 @@ export function ReaderView({
             Library
           </Link>
         </Button>
-        <span className='text-muted-foreground flex-1 truncate text-center text-[13px] max-md:invisible'>
+        <span className='flex-1 truncate text-center text-[13px] text-muted-foreground max-md:invisible'>
           {article?.title}
         </span>
         {article && (
@@ -226,7 +226,7 @@ export function ReaderView({
                 dir={article.dir ?? undefined}
                 className='mx-auto max-w-[660px]'
               >
-                <p className='text-muted-foreground text-[13px]'>
+                <p className='text-[13px] text-muted-foreground'>
                   {articleSource(article)}
                   {article.reading_time_minutes !== null &&
                     ` · ${article.reading_time_minutes} min read`}
@@ -235,7 +235,7 @@ export function ReaderView({
                   {article.title ?? article.url}
                 </h1>
                 {byline.length > 0 && (
-                  <p className='text-muted-foreground mt-4 text-[15px]'>
+                  <p className='mt-4 text-[15px] text-muted-foreground'>
                     {byline.join(' · ')}
                   </p>
                 )}
@@ -250,7 +250,7 @@ export function ReaderView({
                     onDeleteHighlight={onDeleteHighlight}
                   />
                 ) : (
-                  <p className='text-muted-foreground mt-10'>
+                  <p className='mt-10 text-muted-foreground'>
                     There&rsquo;s no text saved for this page.{' '}
                     <a href={article.url} className='text-foreground underline'>
                       Read the original

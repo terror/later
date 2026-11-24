@@ -31,7 +31,7 @@ function Scale() {
     <div className='flex w-[720px] flex-col gap-5'>
       {SCALE.map(([name, className, sample]) => (
         <div key={name} className='flex items-baseline gap-6'>
-          <span className='text-muted-foreground w-20 shrink-0 text-xs'>
+          <span className='w-20 shrink-0 text-xs text-muted-foreground'>
             {name}
           </span>
           <span className={className}>{sample}</span>

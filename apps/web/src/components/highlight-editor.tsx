@@ -33,7 +33,7 @@ export function HighlightEditor({
             event.currentTarget.form?.requestSubmit();
           }
         }}
-        className='bg-muted placeholder:text-faint focus-visible:ring-ring/30 w-full resize-none rounded-lg px-3 py-2 text-sm outline-none focus-visible:ring-2'
+        className='w-full resize-none rounded-lg bg-muted px-3 py-2 text-sm outline-none placeholder:text-faint focus-visible:ring-2 focus-visible:ring-ring/30'
       />
       <div className='flex justify-between gap-2'>
         <Button

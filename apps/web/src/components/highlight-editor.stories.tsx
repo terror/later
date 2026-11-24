@@ -10,7 +10,7 @@ const meta = preview.meta({
   args: { highlight: highlights[1], onSave: fn(), onDelete: fn() },
   decorators: [
     (Story) => (
-      <div className='bg-popover rounded-xl p-1.5 shadow-lg'>
+      <div className='rounded-xl bg-popover p-1.5 shadow-lg'>
         <Story />
       </div>
     ),

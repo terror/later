@@ -32,7 +32,7 @@ export default function ConnectPage() {
   }
 
   return (
-    <div className='bg-background text-foreground flex min-h-screen flex-col px-6 pt-10 pb-14 antialiased sm:px-12'>
+    <div className='flex min-h-screen flex-col bg-background px-6 pt-10 pb-14 text-foreground antialiased sm:px-12'>
       <header className='flex items-center justify-between gap-4'>
         <Link to='/' aria-label='later home'>
           <Logo />
@@ -58,7 +58,7 @@ export default function ConnectPage() {
             </h1>
             <a
               href={getLoginUrl()}
-              className='bg-primary text-primary-foreground mt-12 flex h-13 items-center gap-2.5 rounded-xl px-6 text-base font-medium'
+              className='mt-12 flex h-13 items-center gap-2.5 rounded-xl bg-primary px-6 text-base font-medium text-primary-foreground'
             >
               <Github className='size-[18px]' aria-hidden />
               Continue with GitHub
@@ -77,11 +77,11 @@ export default function ConnectPage() {
               type='button'
               onClick={() => connect.mutate()}
               disabled={connecting}
-              className='bg-primary text-primary-foreground mt-12 flex h-13 items-center rounded-xl px-6 text-base font-medium disabled:opacity-60'
+              className='mt-12 flex h-13 items-center rounded-xl bg-primary px-6 text-base font-medium text-primary-foreground disabled:opacity-60'
             >
               {connecting ? 'Connecting…' : 'Connect'}
             </button>
-            <p className='text-muted-foreground mt-5 text-sm'>
+            <p className='mt-5 text-sm text-muted-foreground'>
               {connect.isError
                 ? 'Something went wrong. Try again.'
                 : `Signed in as ${user.email}.`}

@@ -113,14 +113,14 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
 
 export default function PrivacyPage() {
   return (
-    <div className='bg-background text-foreground min-h-screen antialiased'>
+    <div className='min-h-screen bg-background text-foreground antialiased'>
       <header className='mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-6 sm:px-10'>
         <Link to='/' aria-label='later home'>
           <Logo />
         </Link>
         <Link
           to='/'
-          className='text-muted-foreground hover:text-foreground flex h-11 items-center gap-1.5 text-[15px] font-medium'
+          className='flex h-11 items-center gap-1.5 text-[15px] font-medium text-muted-foreground hover:text-foreground'
         >
           <ArrowLeft className='size-4' aria-hidden />
           Back
@@ -130,7 +130,7 @@ export default function PrivacyPage() {
         <h1 className='text-4xl leading-[1.06] font-semibold tracking-[-0.04em] sm:text-6xl'>
           Privacy
         </h1>
-        <p className='text-muted-foreground mt-4 text-[15px]'>
+        <p className='mt-4 text-[15px] text-muted-foreground'>
           Last updated November 23, 2026
         </p>
         <div className='mt-14 flex max-w-[660px] flex-col gap-12'>
@@ -139,7 +139,7 @@ export default function PrivacyPage() {
               <h2 className='text-xl font-semibold tracking-[-0.02em]'>
                 {title}
               </h2>
-              <div className='text-muted-foreground [&_a]:text-foreground [&_code]:bg-muted [&_code]:text-foreground flex flex-col gap-4 text-[15px] leading-relaxed [&_a]:underline [&_code]:rounded [&_code]:px-1 [&_code]:font-mono [&_code]:text-[13px] [&_ul]:flex [&_ul]:list-disc [&_ul]:flex-col [&_ul]:gap-2 [&_ul]:pl-5'>
+              <div className='flex flex-col gap-4 text-[15px] leading-relaxed text-muted-foreground [&_a]:text-foreground [&_a]:underline [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:font-mono [&_code]:text-[13px] [&_code]:text-foreground [&_ul]:flex [&_ul]:list-disc [&_ul]:flex-col [&_ul]:gap-2 [&_ul]:pl-5'>
                 {body}
               </div>
             </section>

@@ -145,7 +145,7 @@ export function Library({
     : EMPTY[view];
 
   return (
-    <div className='bg-background text-foreground flex h-dvh'>
+    <div className='flex h-dvh bg-background text-foreground'>
       <AppSidebar
         className='hidden md:flex'
         view={view}
@@ -160,7 +160,7 @@ export function Library({
             <Mark className='size-7 md:hidden' />
             <h1 className='flex-1 text-[28px] font-semibold tracking-[-0.035em] md:text-[22px] md:tracking-[-0.03em]'>
               {LABELS[view]}{' '}
-              <span className='text-muted-foreground font-normal tabular-nums'>
+              <span className='font-normal text-muted-foreground tabular-nums'>
                 {articles ? visible.length : ''}
               </span>
             </h1>
@@ -225,7 +225,7 @@ export function Library({
           )}
           {!error && hasMore && <div ref={sentinel} aria-hidden />}
           {!error && loadingMore && (
-            <p className='text-muted-foreground py-4 text-center text-[13px]'>
+            <p className='py-4 text-center text-[13px] text-muted-foreground'>
               Loading more…
             </p>
           )}

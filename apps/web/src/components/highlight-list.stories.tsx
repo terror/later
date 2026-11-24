@@ -9,7 +9,7 @@ const meta = preview.meta({
   args: { highlights, onSelect: fn() },
   decorators: [
     (Story) => (
-      <div className='bg-card w-[340px] p-6'>
+      <div className='w-[340px] bg-card p-6'>
         <Story />
       </div>
     ),

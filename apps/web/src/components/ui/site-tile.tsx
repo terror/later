@@ -21,7 +21,7 @@ export function SiteTile({
     <span
       aria-hidden
       className={cn(
-        'bg-muted text-muted-foreground flex shrink-0 items-center justify-center font-semibold',
+        'flex shrink-0 items-center justify-center bg-muted font-semibold text-muted-foreground',
         SIZES[size],
         className
       )}

@@ -59,7 +59,7 @@ export function AddLink({
             placeholder='https://'
             value={url}
             onChange={(event) => setUrl(event.target.value)}
-            className='bg-card placeholder:text-muted-foreground focus-visible:ring-ring/15 h-9 rounded-lg px-2.5 text-sm outline-none focus-visible:ring-2'
+            className='h-9 rounded-lg bg-card px-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/15'
           />
           <DialogFooter>
             <Button type='submit'>Save</Button>

@@ -12,11 +12,11 @@ function Progress({
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(value * 100)}
-      className={cn('bg-muted h-1 overflow-hidden rounded-full', className)}
+      className={cn('h-1 overflow-hidden rounded-full bg-muted', className)}
       {...props}
     >
       <div
-        className='bg-foreground h-full rounded-full transition-[width]'
+        className='h-full rounded-full bg-foreground transition-[width]'
         style={{ width: `${value * 100}%` }}
       />
     </div>

@@ -11,14 +11,14 @@ export function SearchField({
   return (
     <label
       className={cn(
-        'bg-card text-muted-foreground focus-within:ring-ring/15 flex h-9 items-center gap-2 rounded-lg px-2.5 text-sm focus-within:ring-2',
+        'flex h-9 items-center gap-2 rounded-lg bg-card px-2.5 text-sm text-muted-foreground focus-within:ring-2 focus-within:ring-ring/15',
         className
       )}
     >
       <Search className='size-[15px] shrink-0' aria-hidden />
       <input
         type='search'
-        className='text-foreground placeholder:text-muted-foreground min-w-0 flex-1 bg-transparent outline-none [&::-webkit-search-cancel-button]:hidden'
+        className='min-w-0 flex-1 bg-transparent text-foreground outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden'
         {...props}
       />
       {shortcut && <Kbd className='hidden md:inline-flex'>{shortcut}</Kbd>}
