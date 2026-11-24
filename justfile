@@ -59,6 +59,19 @@ services:
   docker compose up -d
 
 [group: 'test']
+coverage: coverage-api coverage-web
+
+[group: 'test']
+coverage-api:
+  cargo llvm-cov --workspace --all-targets --all-features --no-report
+  cargo llvm-cov report --html
+  cargo llvm-cov report --summary-only
+
+[group: 'test']
+coverage-web:
+  cd apps/web && bun test --coverage
+
+[group: 'test']
 test: test-api test-web
 
 [group: 'test']
