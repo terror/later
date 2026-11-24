@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { getLogoutUrl } from '@/lib/api';
 import { articlesQuery } from '@/lib/queries';
 import { useInfiniteQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 
 export default function LibraryPage() {
   const { user } = useAuth();
@@ -21,6 +22,8 @@ export default function LibraryPage() {
 
   const save = useSaveArticle();
 
+  const [now] = useState(() => new Date());
+
   return (
     <Library
       articles={data?.pages.flatMap((page) => page.articles) ?? null}
@@ -30,6 +33,7 @@ export default function LibraryPage() {
       onLoadMore={fetchNextPage}
       user={user}
       signOutHref={getLogoutUrl()}
+      now={now}
       onToggleFavorite={(article) =>
         update.mutate({
           articleId: article.article_id,

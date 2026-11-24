@@ -12,7 +12,7 @@ export default function SignInPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate('/');
+      void navigate('/');
     }
   }, [user, loading, navigate]);
 

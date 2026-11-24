@@ -120,6 +120,7 @@ export function ArticleContent({
     <>
       <div
         ref={ref}
+        role='presentation'
         className='reader-content mt-10'
         onMouseUp={select}
         onKeyUp={select}

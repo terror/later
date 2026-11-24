@@ -1,0 +1,80 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error"
+  },
+  "ignorePatterns": [
+    "apps/extension/.output/",
+    "apps/extension/.wxt/",
+    "packages/types/index.d.ts"
+  ],
+  "options": {
+    "denyWarnings": true,
+    "reportUnusedDisableDirectives": "error",
+    "typeAware": true
+  },
+  "plugins": [
+    "eslint",
+    "import",
+    "jsx-a11y",
+    "oxc",
+    "promise",
+    "react",
+    "typescript",
+    "unicorn"
+  ],
+  "rules": {
+    "eslint/no-shadow": "off",
+    "import/no-unassigned-import": [
+      "error",
+      {
+        "allow": [
+          "**/*.css"
+        ]
+      }
+    ],
+    "react/exhaustive-deps": "error",
+    "react/only-export-components": "error",
+    "react/react-in-jsx-scope": "off",
+    "react/rules-of-hooks": "error",
+    "tailwindcss/enforce-canonical": "error",
+    "tailwindcss/no-conflicting-classes": "error",
+    "tailwindcss/no-deprecated-classes": "error",
+    "tailwindcss/no-duplicate-classes": "error",
+    "tailwindcss/no-unknown-classes": "error",
+    "tailwindcss/no-unnecessary-arbitrary-value": "error",
+    "typescript/no-unsafe-type-assertion": "off"
+  },
+  "overrides": [
+    {
+      "files": [
+        "apps/extension/components/ui/**",
+        "apps/web/src/components/ui/**"
+      ],
+      "rules": {
+        "jsx-a11y/click-events-have-key-events": "off",
+        "jsx-a11y/no-noninteractive-element-interactions": "off",
+        "jsx-a11y/prefer-tag-over-role": "off",
+        "react/only-export-components": "off"
+      }
+    },
+    {
+      "files": [
+        "**/*.stories.tsx",
+        "apps/web/.storybook/**"
+      ],
+      "rules": {
+        "react/only-export-components": "off"
+      }
+    }
+  ],
+  "jsPlugins": [
+    "oxlint-tailwindcss"
+  ],
+  "settings": {
+    "tailwindcss": {
+      "entryPoint": "apps/web/src/index.css"
+    }
+  }
+}

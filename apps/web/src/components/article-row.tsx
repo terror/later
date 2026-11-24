@@ -77,7 +77,7 @@ export function ArticleRow({
           )}
         </span>
         {article.excerpt && (
-          <span className='text-muted-foreground line-clamp-2 hidden text-[13px] leading-normal md:block'>
+          <span className='text-muted-foreground hidden text-[13px] leading-normal md:line-clamp-2'>
             {article.excerpt}
           </span>
         )}

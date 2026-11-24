@@ -52,7 +52,7 @@ export function Library({
   onLoadMore,
   user,
   signOutHref,
-  now = new Date(),
+  now,
   onToggleFavorite,
   onToggleArchive,
   onToggleRead,
@@ -66,7 +66,7 @@ export function Library({
   onLoadMore?: () => void;
   user: User | null;
   signOutHref: string;
-  now?: Date;
+  now: Date;
   onToggleFavorite: (article: Article) => void;
   onToggleArchive: (article: Article) => void;
   onToggleRead: (article: Article) => void;

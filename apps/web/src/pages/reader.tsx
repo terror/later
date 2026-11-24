@@ -16,9 +16,13 @@ import { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 export default function ReaderPage() {
-  const { user, loading } = useAuth();
-
   const { articleId = '' } = useParams();
+
+  return <Reader key={articleId} articleId={articleId} />;
+}
+
+function Reader({ articleId }: { articleId: string }) {
+  const { user, loading } = useAuth();
 
   const navigate = useNavigate();
 
@@ -48,11 +52,11 @@ export default function ReaderPage() {
 
   useEffect(() => {
     counted.current = Date.now();
-  }, [articleId]);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate('/sign-in');
+      void navigate('/sign-in');
     }
   }, [user, loading, navigate]);
 
