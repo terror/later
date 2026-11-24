@@ -45,7 +45,7 @@ export default function LandingPage() {
             </Button>
           </div>
         </section>
-        <section className='mx-auto max-w-6xl px-4 sm:px-8'>
+        <section className='mx-auto max-w-6xl px-4 pb-24 sm:px-8'>
           <picture>
             <source srcSet='/screenshot.webp' type='image/webp' />
             <img
@@ -56,19 +56,6 @@ export default function LandingPage() {
               className='h-auto w-full'
             />
           </picture>
-        </section>
-        <section className='mx-auto max-w-6xl px-6 pt-28 pb-24 sm:px-10'>
-          <div className='flex flex-col items-start gap-6 rounded-3xl bg-card px-8 py-12 sm:flex-row sm:items-center sm:justify-between sm:px-12'>
-            <h2 className='text-2xl font-semibold tracking-[-0.03em] sm:text-3xl'>
-              Start your reading list.
-            </h2>
-            <Button asChild size='lg'>
-              <a href={getLoginUrl()}>
-                <Github />
-                Continue with GitHub
-              </a>
-            </Button>
-          </div>
         </section>
       </main>
       <footer className='mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 pb-12 text-sm text-muted-foreground sm:px-10'>
