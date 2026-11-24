@@ -66,6 +66,21 @@ jobs:
         working-directory: apps/web
         run: bun run build-storybook
 
+      - name: Install Playwright
+        working-directory: apps/web
+        run: bunx playwright install --with-deps chromium
+
+      - name: End-to-end tests
+        working-directory: apps/web
+        run: bun run e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+
       - name: Compile extension
         working-directory: apps/extension
         run: bun run compile

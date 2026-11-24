@@ -16,9 +16,11 @@ dist-ssr
 lerna-debug.log*
 logs
 node_modules
+playwright-report
 storybook-static
 npm-debug.log*
 pnpm-debug.log*
 target/
+test-results
 yarn-debug.log*
 yarn-error.log*
