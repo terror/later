@@ -85,6 +85,10 @@ jobs:
         working-directory: apps/extension
         run: bun run compile
 
+      - name: Test extension
+        working-directory: apps/extension
+        run: bun test
+
   server:
     name: Server
     runs-on: ubuntu-latest
