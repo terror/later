@@ -42,7 +42,10 @@ impl Modify for GithubOAuthSecurity {
     auth::login,
     auth::login_authorized,
     auth::exchange,
+    auth::google_authorized,
+    auth::google_login,
     auth::logout,
+    auth::providers,
     auth::session,
     tokens::create,
     tokens::delete,
@@ -54,6 +57,7 @@ impl Modify for GithubOAuthSecurity {
       model::Article,
       model::ArticleWithContent,
       model::User,
+      provider::Provider,
       tokens::CreatedToken
     )
   ),

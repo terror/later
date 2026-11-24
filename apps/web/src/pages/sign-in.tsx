@@ -1,12 +1,15 @@
 import { Logo } from '@/components/logo';
+import { SignInButtons } from '@/components/sign-in-buttons';
 import { useAuth } from '@/hooks/use-auth';
-import { getLoginUrl } from '@/lib/api';
-import { ArrowLeft, Github } from 'lucide-react';
+import { useProviders } from '@/hooks/use-providers';
+import { ArrowLeft } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function SignInPage() {
   const { user, loading } = useAuth();
+
+  const { providers, loading: providersLoading } = useProviders();
 
   const navigate = useNavigate();
 
@@ -16,7 +19,7 @@ export default function SignInPage() {
     }
   }, [user, loading, navigate]);
 
-  if (loading) {
+  if (loading || providersLoading) {
     return null;
   }
 
@@ -39,13 +42,9 @@ export default function SignInPage() {
           Sign in
           <span className='text-muted-foreground'> to keep reading.</span>
         </h1>
-        <a
-          href={getLoginUrl()}
-          className='bg-primary text-primary-foreground mt-12 flex h-13 items-center gap-2.5 rounded-xl px-6 text-base font-medium'
-        >
-          <Github className='size-[18px]' aria-hidden />
-          Continue with GitHub
-        </a>
+        <div className='mt-12 flex flex-wrap items-center gap-3'>
+          <SignInButtons providers={providers} size='xl' />
+        </div>
         <p className='text-muted-foreground mt-5 text-sm'>
           New here? Signing in creates your account.
         </p>

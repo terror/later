@@ -10,7 +10,7 @@ const meta = preview.meta({
   argTypes: {
     size: {
       control: 'select',
-      options: ['default', 'sm', 'lg', 'icon', 'icon-sm'],
+      options: ['default', 'sm', 'lg', 'xl', 'icon', 'icon-sm'],
     },
     variant: {
       control: 'select',
@@ -56,6 +56,9 @@ export const Sizes = meta.story({
       <Button {...args}>Default</Button>
       <Button {...args} size='lg'>
         Large
+      </Button>
+      <Button {...args} size='xl'>
+        Extra large
       </Button>
     </div>
   ),

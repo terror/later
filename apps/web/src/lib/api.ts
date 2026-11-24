@@ -1,4 +1,4 @@
-import type { Article, ArticleWithContent, User } from './types';
+import type { Article, ArticleWithContent, Provider, User } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
@@ -19,8 +19,28 @@ export async function getSession(): Promise<User | null> {
   }
 }
 
-export function getLoginUrl(): string {
-  return `${API_BASE_URL}/auth/login?redirect=${encodeURIComponent(window.location.href)}`;
+export async function getProviders(): Promise<Provider[]> {
+  try {
+    const response = await fetch('/auth/providers');
+
+    if (response.ok) {
+      return await response.json();
+    }
+
+    return ['github'];
+  } catch (error) {
+    console.error('failed to fetch providers:', error);
+    return ['github'];
+  }
+}
+
+const LOGIN_PATHS: Record<Provider, string> = {
+  github: '/auth/login',
+  google: '/auth/google/login',
+};
+
+export function getLoginUrl(provider: Provider = 'github'): string {
+  return `${API_BASE_URL}${LOGIN_PATHS[provider]}?redirect=${encodeURIComponent(window.location.href)}`;
 }
 
 export function getLogoutUrl(): string {

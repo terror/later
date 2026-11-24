@@ -1,13 +1,16 @@
 import { Logo } from '@/components/logo';
+import { SignInButtons } from '@/components/sign-in-buttons';
 import { useAuth } from '@/hooks/use-auth';
-import { createToken, getLoginUrl } from '@/lib/api';
+import { useProviders } from '@/hooks/use-providers';
+import { createToken } from '@/lib/api';
 import { parseExtensionRedirect } from '@/lib/extension';
 import { useMutation } from '@tanstack/react-query';
-import { Github } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 export default function ConnectPage() {
   const { user, loading } = useAuth();
+
+  const { providers, loading: providersLoading } = useProviders();
 
   const [searchParams] = useSearchParams();
 
@@ -27,7 +30,7 @@ export default function ConnectPage() {
 
   const connecting = connect.isPending || connect.isSuccess;
 
-  if (loading) {
+  if (loading || providersLoading) {
     return null;
   }
 
@@ -56,13 +59,9 @@ export default function ConnectPage() {
                 to connect the extension.
               </span>
             </h1>
-            <a
-              href={getLoginUrl()}
-              className='bg-primary text-primary-foreground mt-12 flex h-13 items-center gap-2.5 rounded-xl px-6 text-base font-medium'
-            >
-              <Github className='size-[18px]' aria-hidden />
-              Continue with GitHub
-            </a>
+            <div className='mt-12 flex flex-wrap items-center gap-3'>
+              <SignInButtons providers={providers} size='xl' />
+            </div>
           </>
         ) : (
           <>

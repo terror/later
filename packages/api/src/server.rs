@@ -42,7 +42,7 @@ impl Server {
       .await
       .context("failed to create Redis session store")?;
 
-    let oauth_client = auth::oauth_client()?;
+    let oauth_clients = OAuthClients::new(|name| env::var(name).ok())?;
 
     let allowed_origins = AllowedOrigins::new(
       &env::var("ALLOWED_ORIGINS")
@@ -52,7 +52,7 @@ impl Server {
     let state = State {
       allowed_origins,
       db,
-      oauth_client,
+      oauth_clients,
       session_store,
     };
 
@@ -91,8 +91,11 @@ impl Server {
       )
       .route("/auth/authorized", get(auth::login_authorized))
       .route("/auth/exchange", get(auth::exchange))
+      .route("/auth/google/authorized", get(auth::google_authorized))
+      .route("/auth/google/login", get(auth::google_login))
       .route("/auth/login", get(auth::login))
       .route("/auth/logout", get(auth::logout))
+      .route("/auth/providers", get(auth::providers))
       .route("/auth/session", get(auth::session))
       .route("/tokens", post(tokens::create).delete(tokens::delete))
       .merge(Scalar::with_url("/", Documentation::openapi()));

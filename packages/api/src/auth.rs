@@ -54,36 +54,6 @@ fn session_cookie(value: &str) -> Result<HeaderMap> {
   Ok(headers)
 }
 
-pub(crate) fn oauth_client() -> Result<ConfiguredOAuthClient> {
-  let client_id =
-    env::var("GITHUB_CLIENT_ID").context("GITHUB_CLIENT_ID must be set")?;
-
-  let client_secret = env::var("GITHUB_CLIENT_SECRET")
-    .context("GITHUB_CLIENT_SECRET must be set")?;
-
-  let redirect_url = env::var("GITHUB_REDIRECT_URL")
-    .context("GITHUB_REDIRECT_URL must be set")?;
-
-  let auth_url =
-    AuthUrl::new("https://github.com/login/oauth/authorize".to_string())
-      .context("failed to create new authorization server URL")?;
-
-  let token_url =
-    TokenUrl::new("https://github.com/login/oauth/access_token".to_string())
-      .context("failed to create new token endpoint URL")?;
-
-  Ok(
-    OAuth2BasicClient::new(ClientId::new(client_id))
-      .set_client_secret(ClientSecret::new(client_secret))
-      .set_auth_uri(auth_url)
-      .set_token_uri(token_url)
-      .set_redirect_uri(
-        RedirectUrl::new(redirect_url)
-          .context("failed to create new redirection URL")?,
-      ),
-  )
-}
-
 #[utoipa::path(
   get,
   path = "/auth/login",
@@ -100,12 +70,51 @@ pub(crate) fn oauth_client() -> Result<ConfiguredOAuthClient> {
 pub async fn login(
   Query(params): Query<RedirectParams>,
   AppState(allowed_origins): AppState<AllowedOrigins>,
-  AppState(client): AppState<ConfiguredOAuthClient>,
+  AppState(clients): AppState<OAuthClients>,
   AppState(store): AppState<RedisSessionStore>,
-) -> Result<impl IntoResponse> {
-  let (auth_url, csrf_token) = client
+) -> Result<Response> {
+  authorize(Provider::Github, params, &allowed_origins, &clients, &store).await
+}
+
+#[utoipa::path(
+  get,
+  path = "/auth/google/login",
+  tag = "auth",
+  description = "Initiate the Google OAuth flow and set the CSRF session cookie.",
+  params(
+    ("redirect" = String, Query, description = "URL to redirect to after authentication completes.")
+  ),
+  responses(
+    (status = StatusCode::SEE_OTHER, description = "Redirect to Google's OAuth authorization page."),
+    (status = StatusCode::NOT_FOUND, description = "Google sign-in is not enabled.", body = String),
+    (status = StatusCode::INTERNAL_SERVER_ERROR, description = "Failed to initiate the OAuth flow.", body = String)
+  )
+)]
+pub(crate) async fn google_login(
+  Query(params): Query<RedirectParams>,
+  AppState(allowed_origins): AppState<AllowedOrigins>,
+  AppState(clients): AppState<OAuthClients>,
+  AppState(store): AppState<RedisSessionStore>,
+) -> Result<Response> {
+  authorize(Provider::Google, params, &allowed_origins, &clients, &store).await
+}
+
+async fn authorize(
+  provider: Provider,
+  params: RedirectParams,
+  allowed_origins: &AllowedOrigins,
+  clients: &OAuthClients,
+  store: &RedisSessionStore,
+) -> Result<Response> {
+  let (auth_url, csrf_token) = clients
+    .get(provider)?
     .authorize_url(CsrfToken::new_random)
-    .add_scope(Scope::new("user:email".to_string()))
+    .add_scopes(
+      provider
+        .scopes()
+        .iter()
+        .map(|scope| Scope::new((*scope).to_string())),
+    )
     .url();
 
   let mut session = Session::new();
@@ -128,7 +137,9 @@ pub async fn login(
     .context("failed to store CSRF token session")?
     .context("unexpected error retrieving CSRF cookie value")?;
 
-  Ok((session_cookie(&cookie)?, Redirect::to(auth_url.as_ref())))
+  Ok(
+    (session_cookie(&cookie)?, Redirect::to(auth_url.as_ref())).into_response(),
+  )
 }
 
 #[utoipa::path(
@@ -150,72 +161,80 @@ pub(crate) async fn login_authorized(
   AppState(allowed_origins): AppState<AllowedOrigins>,
   AppState(db): AppState<Db>,
   AppState(store): AppState<RedisSessionStore>,
-  AppState(oauth_client): AppState<ConfiguredOAuthClient>,
+  AppState(clients): AppState<OAuthClients>,
   TypedHeader(cookies): TypedHeader<headers::Cookie>,
 ) -> Result<Response> {
-  let redirect = validate_csrf_token(&query, &cookies, &store).await?;
+  authorized(
+    Provider::Github,
+    query,
+    &cookies,
+    &allowed_origins,
+    &clients,
+    &db,
+    &store,
+  )
+  .await
+}
 
-  let token = oauth_client
+#[utoipa::path(
+  get,
+  path = "/auth/google/authorized",
+  tag = "auth",
+  description = "Complete the Google OAuth flow, validate state, and establish a user session.",
+  params(
+    ("code" = String, Query, description = "Authorization code returned by Google."),
+    ("state" = String, Query, description = "Opaque state used to validate the CSRF token.")
+  ),
+  responses(
+    (status = StatusCode::SEE_OTHER, description = "Redirect to the application after creating the session."),
+    (status = StatusCode::NOT_FOUND, description = "Google sign-in is not enabled.", body = String),
+    (status = StatusCode::INTERNAL_SERVER_ERROR, description = "Failed to exchange the authorization code or create the session.", body = String)
+  )
+)]
+pub(crate) async fn google_authorized(
+  Query(query): Query<AuthRequest>,
+  AppState(allowed_origins): AppState<AllowedOrigins>,
+  AppState(db): AppState<Db>,
+  AppState(store): AppState<RedisSessionStore>,
+  AppState(clients): AppState<OAuthClients>,
+  TypedHeader(cookies): TypedHeader<headers::Cookie>,
+) -> Result<Response> {
+  authorized(
+    Provider::Google,
+    query,
+    &cookies,
+    &allowed_origins,
+    &clients,
+    &db,
+    &store,
+  )
+  .await
+}
+
+async fn authorized(
+  provider: Provider,
+  query: AuthRequest,
+  cookies: &headers::Cookie,
+  allowed_origins: &AllowedOrigins,
+  clients: &OAuthClients,
+  db: &Db,
+  store: &RedisSessionStore,
+) -> Result<Response> {
+  let client = clients.get(provider)?;
+
+  let redirect = validate_csrf_token(&query, cookies, store).await?;
+
+  let token = client
     .exchange_code(oauth2::AuthorizationCode::new(query.code))
     .request_async(&reqwest::Client::new())
     .await
     .context("failed in sending request request to authorization server")?;
 
-  let client = reqwest::Client::new();
-
-  let access_token = token.access_token().secret().to_owned();
-
-  let user = client
-    .get("https://api.github.com/user")
-    .bearer_auth(&access_token)
-    .header("User-Agent", "Later-App")
-    .send()
-    .await
-    .context("failed in sending request to GitHub API")?
-    .json::<Value>()
-    .await
-    .context("failed to deserialize response as JSON")?;
-
-  let name = user.get("name").and_then(Value::as_str);
-
-  let emails = client
-    .get("https://api.github.com/user/emails")
-    .bearer_auth(&access_token)
-    .header("User-Agent", "Later-App")
-    .send()
-    .await
-    .context("failed to fetch user emails from GitHub API")?
-    .json::<Value>()
-    .await
-    .context("failed to deserialize emails response as JSON")?;
-
-  let is_verified = |email: &&Value| {
-    email
-      .get("verified")
-      .and_then(Value::as_bool)
-      .unwrap_or(false)
-  };
-
-  let is_primary = |email: &&Value| {
-    email
-      .get("primary")
-      .and_then(Value::as_bool)
-      .unwrap_or(false)
-  };
-
-  let email = emails
-    .as_array()
-    .and_then(|emails| {
-      emails
-        .iter()
-        .find(|e| is_primary(e) && is_verified(e))
-        .or_else(|| emails.iter().find(is_verified))
-        .and_then(|e| e.get("email")?.as_str())
-    })
-    .ok_or_else(|| anyhow!("no verified email found for GitHub user"))?;
+  let Identity { email, name } =
+    provider.identity(token.access_token().secret()).await?;
 
   let user = db
-    .upsert_user(email, name)
+    .upsert_user(&email, name.as_deref())
     .await
     .context("failed to persist authenticated user")?;
 
@@ -355,6 +374,21 @@ pub(crate) async fn logout(
 )]
 pub(crate) async fn session(User(user): User) -> impl IntoResponse {
   Json(user)
+}
+
+#[utoipa::path(
+  get,
+  path = "/auth/providers",
+  tag = "auth",
+  description = "List the enabled sign-in providers.",
+  responses(
+    (status = StatusCode::OK, description = "Enabled sign-in providers.", body = Vec<Provider>)
+  )
+)]
+pub(crate) async fn providers(
+  AppState(clients): AppState<OAuthClients>,
+) -> impl IntoResponse {
+  Json(clients.providers())
 }
 
 async fn validate_csrf_token(

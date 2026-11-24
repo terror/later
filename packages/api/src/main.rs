@@ -3,7 +3,7 @@ use {
   anyhow::{Context, anyhow},
   api_token::ApiToken,
   async_session::{Session, SessionStore, async_trait, serde_json},
-  auth::COOKIE_NAME,
+  auth::{COOKIE_NAME, ConfiguredOAuthClient},
   axum::{
     Json, RequestPartsExt, Router,
     body::Body,
@@ -30,10 +30,13 @@ use {
     header::{self, SET_COOKIE, USER_AGENT},
     request::Parts,
   },
+  identity::Identity,
+  oauth_clients::OAuthClients,
   oauth2::{
     AuthUrl, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope,
     TokenResponse, TokenUrl, basic::BasicClient as OAuth2BasicClient,
   },
+  provider::Provider,
   readability::{Readability, ReadabilityOptions},
   redis::{
     AsyncCommands, Client, IntoConnectionInfo, RedisResult,
@@ -93,6 +96,9 @@ mod auth;
 mod documentation;
 mod error;
 mod extraction;
+mod identity;
+mod oauth_clients;
+mod provider;
 mod redis_session_store;
 mod server;
 mod state;

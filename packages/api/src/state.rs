@@ -4,7 +4,7 @@ use super::*;
 pub(crate) struct State {
   pub(crate) allowed_origins: AllowedOrigins,
   pub(crate) db: Db,
-  pub(crate) oauth_client: auth::ConfiguredOAuthClient,
+  pub(crate) oauth_clients: OAuthClients,
   pub(crate) session_store: RedisSessionStore,
 }
 
@@ -20,9 +20,9 @@ impl FromRef<State> for Db {
   }
 }
 
-impl FromRef<State> for auth::ConfiguredOAuthClient {
+impl FromRef<State> for OAuthClients {
   fn from_ref(state: &State) -> Self {
-    state.oauth_client.clone()
+    state.oauth_clients.clone()
   }
 }
 

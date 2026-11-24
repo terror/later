@@ -1,11 +1,12 @@
 import { Logo } from '@/components/logo';
+import { SignInButtons } from '@/components/sign-in-buttons';
 import { Button } from '@/components/ui/button';
-import { getLoginUrl } from '@/lib/api';
+import { PROVIDER_LABELS } from '@/lib/providers';
+import type { Provider } from '@/lib/types';
 import {
   ArrowUpRight,
   BookOpen,
   Code,
-  Github,
   Inbox,
   type LucideIcon,
   MonitorSmartphone,
@@ -54,9 +55,9 @@ const FEATURES: { icon: LucideIcon; title: string; description: string }[] = [
   },
 ];
 
-const STEPS = [
+const steps = (providers: Provider[]) => [
   {
-    title: 'Sign in with GitHub',
+    title: `Sign in with ${providers.map((provider) => PROVIDER_LABELS[provider]).join(' or ')}`,
     description: 'No new password to remember.',
   },
   {
@@ -69,7 +70,7 @@ const STEPS = [
   },
 ];
 
-export default function LandingPage() {
+export default function LandingPage({ providers }: { providers: Provider[] }) {
   return (
     <div className='bg-background text-foreground min-h-screen antialiased'>
       <header className='mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-6 sm:px-10'>
@@ -97,12 +98,7 @@ export default function LandingPage() {
             </span>
           </h1>
           <div className='mt-10 flex flex-wrap items-center gap-3'>
-            <Button asChild size='lg'>
-              <a href={getLoginUrl()}>
-                <Github />
-                Continue with GitHub
-              </a>
-            </Button>
+            <SignInButtons providers={providers} />
             <Button asChild size='lg' variant='ghost'>
               <a href={REPOSITORY_URL}>
                 View the source
@@ -155,7 +151,7 @@ export default function LandingPage() {
             How it works
           </h2>
           <ol className='mt-12 grid grid-cols-[repeat(auto-fit,minmax(min(260px,100%),1fr))] gap-8'>
-            {STEPS.map(({ title, description }, index) => (
+            {steps(providers).map(({ title, description }, index) => (
               <li key={title} className='flex flex-col gap-2'>
                 <span className='bg-muted flex size-8 items-center justify-center rounded-full text-[13px] font-semibold tabular-nums'>
                   {index + 1}
@@ -173,12 +169,9 @@ export default function LandingPage() {
             <h2 className='text-2xl font-semibold tracking-[-0.03em] sm:text-3xl'>
               Start your reading list.
             </h2>
-            <Button asChild size='lg'>
-              <a href={getLoginUrl()}>
-                <Github />
-                Continue with GitHub
-              </a>
-            </Button>
+            <div className='flex flex-wrap items-center gap-3'>
+              <SignInButtons providers={providers} />
+            </div>
           </div>
         </section>
       </main>

@@ -11,11 +11,13 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
     body: (
       <>
         <p>
-          You sign in to later with GitHub. later asks GitHub for permission to
-          read your email addresses, then saves your name from your GitHub
-          profile and your primary email address, or another verified one if
-          your primary isn&rsquo;t verified. The access token GitHub returns is
-          used only during sign-in and isn&rsquo;t stored.
+          You sign in to later with GitHub or Google. With GitHub, later asks
+          GitHub for permission to read your email addresses, then saves your
+          name from your GitHub profile and your primary email address, or
+          another verified one if your primary isn&rsquo;t verified. With
+          Google, later asks Google for your name and email address, and saves
+          them only if Google has verified the email. The access token either
+          provider returns is used only during sign-in and isn&rsquo;t stored.
         </p>
         <p>
           Signing in sets a session cookie in your browser. The session it

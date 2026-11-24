@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 
-import type { Article, User } from '../src/lib/types';
+import type { Article, Provider, User } from '../src/lib/types';
 import { content, token } from './fixtures';
 
 export async function mockApi(
@@ -8,17 +8,24 @@ export async function mockApi(
   {
     user = null,
     articles = [],
-  }: { user?: User | null; articles?: Article[] } = {}
+    providers = ['github'],
+  }: { user?: User | null; articles?: Article[]; providers?: Provider[] } = {}
 ) {
   let saved = articles;
 
   await page.route(
     (url) =>
-      url.pathname === '/auth/session' || url.pathname.startsWith('/api/'),
+      url.pathname === '/auth/session' ||
+      url.pathname === '/auth/providers' ||
+      url.pathname.startsWith('/api/'),
     (route) => {
       const request = route.request();
 
       const { pathname } = new URL(request.url());
+
+      if (pathname === '/auth/providers') {
+        return route.fulfill({ json: providers });
+      }
 
       if (!user) {
         return route.fulfill({ status: 401, body: 'unauthorized' });
