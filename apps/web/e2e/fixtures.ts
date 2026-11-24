@@ -34,6 +34,7 @@ function article(
     is_archived: false,
     is_favorited: false,
     date_read: null,
+    progress: { scroll_position: 0, time_spent_seconds: 0 },
     ...fields,
   };
 }
