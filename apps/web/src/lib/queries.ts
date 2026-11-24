@@ -9,9 +9,12 @@ export const sessionQuery = queryOptions({
   staleTime: 5 * 60 * 1000,
 });
 
+const PAGE_SIZE = 50;
+
 export const articlesQuery = infiniteQueryOptions({
   queryKey: ['articles'],
-  queryFn: ({ pageParam }) => getArticles({ cursor: pageParam ?? undefined }),
+  queryFn: ({ pageParam }) =>
+    getArticles({ cursor: pageParam ?? undefined, limit: PAGE_SIZE }),
   initialPageParam: null as string | null,
   getNextPageParam: (page) => page.next_cursor,
   refetchInterval: ({ state }) =>

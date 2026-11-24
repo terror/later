@@ -131,7 +131,18 @@ pub(crate) async fn list(
   user: User,
   AppState(db): AppState<Db>,
   Query(params): Query<model::ListArticles>,
-) -> Result<Json<model::ArticlePage>> {
+) -> Result<Response> {
+  if params.cursor.is_none() && params.limit.is_none() {
+    return Ok(
+      Json(
+        db.articles(user.user_id, None, i64::MAX)
+          .await
+          .context("failed to load articles")?,
+      )
+      .into_response(),
+    );
+  }
+
   let limit = params.limit.unwrap_or(DEFAULT_LIMIT);
 
   if !(1..=MAX_LIMIT).contains(&limit) {
@@ -167,10 +178,13 @@ pub(crate) async fn list(
     .to_string()
   });
 
-  Ok(Json(model::ArticlePage {
-    articles,
-    next_cursor,
-  }))
+  Ok(
+    Json(model::ArticlePage {
+      articles,
+      next_cursor,
+    })
+    .into_response(),
+  )
 }
 
 fn check_progress(progress: &model::ReadingProgress) -> Result<(), BadRequest> {
@@ -341,6 +355,19 @@ mod tests {
       date_saved: saved[1].date_saved,
     }
     .to_string();
+
+    assert_eq!(
+      context.request(Method::GET, "/articles", None).await,
+      (
+        StatusCode::OK,
+        serde_json::to_string(&vec![
+          saved[2].clone(),
+          saved[1].clone(),
+          saved[0].clone(),
+        ])
+        .unwrap(),
+      ),
+    );
 
     assert_eq!(
       context
