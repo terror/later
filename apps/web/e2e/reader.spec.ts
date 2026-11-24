@@ -16,7 +16,7 @@ test('opens an article from the library', async ({ page }) => {
 
   await page.getByRole('link', { name: 'foo' }).click();
 
-  await expect(page).toHaveURL(`/read/${foo.article_id}`);
+  await expect(page).toHaveURL(`/read/${foo.articleId}`);
 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('foo');
 
@@ -29,7 +29,7 @@ test('opens an article from the library', async ({ page }) => {
 });
 
 test('toggles favorite and archive', async ({ page, baseURL }) => {
-  await page.goto(`/read/${foo.article_id}`);
+  await page.goto(`/read/${foo.articleId}`);
 
   const favorite = page.waitForRequest(
     (request) => request.method() === 'PATCH'
@@ -38,10 +38,10 @@ test('toggles favorite and archive', async ({ page, baseURL }) => {
   await header(page).getByRole('button', { name: 'Favorite' }).click();
 
   expect((await favorite).url()).toBe(
-    `${baseURL}/api/articles/${foo.article_id}`
+    `${baseURL}/api/articles/${foo.articleId}`
   );
 
-  expect((await favorite).postDataJSON()).toEqual({ is_favorited: true });
+  expect((await favorite).postDataJSON()).toEqual({ isFavorited: true });
 
   await expect(
     header(page).getByRole('button', { name: 'Unfavorite' })
@@ -53,7 +53,7 @@ test('toggles favorite and archive', async ({ page, baseURL }) => {
 
   await header(page).getByRole('button', { name: 'Archive' }).click();
 
-  expect((await archive).postDataJSON()).toEqual({ is_archived: true });
+  expect((await archive).postDataJSON()).toEqual({ isArchived: true });
 
   await expect(
     header(page).getByRole('button', { name: 'Unarchive' })
@@ -61,13 +61,13 @@ test('toggles favorite and archive', async ({ page, baseURL }) => {
 });
 
 test('toggles read', async ({ page }) => {
-  await page.goto(`/read/${foo.article_id}`);
+  await page.goto(`/read/${foo.articleId}`);
 
   const read = page.waitForRequest((request) => request.method() === 'PATCH');
 
   await header(page).getByRole('button', { name: 'Mark as read' }).click();
 
-  expect((await read).postDataJSON()).toEqual({ is_read: true });
+  expect((await read).postDataJSON()).toEqual({ isRead: true });
 
   await expect(
     header(page).getByRole('button', { name: 'Mark as unread' })
@@ -77,7 +77,7 @@ test('toggles read', async ({ page }) => {
 
   await header(page).getByRole('button', { name: 'Mark as unread' }).click();
 
-  expect((await unread).postDataJSON()).toEqual({ is_read: false });
+  expect((await unread).postDataJSON()).toEqual({ isRead: false });
 
   await expect(
     header(page).getByRole('button', { name: 'Mark as read' })

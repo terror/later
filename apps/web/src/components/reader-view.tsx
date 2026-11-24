@@ -75,16 +75,16 @@ export function ReaderView({
   useLayoutEffect(() => {
     const state = tracking.current;
 
-    if (!article || !main.current || state.articleId === article.article_id) {
+    if (!article || !main.current || state.articleId === article.articleId) {
       return;
     }
 
-    state.articleId = article.article_id;
+    state.articleId = article.articleId;
     state.markedRead = false;
-    state.position = article.progress.scroll_position;
+    state.position = article.progress.scrollPosition;
 
     main.current.scrollTop = scrollOffset(
-      article.progress.scroll_position,
+      article.progress.scrollPosition,
       main.current
     );
   }, [article]);
@@ -104,7 +104,7 @@ export function ReaderView({
   const onScroll = () => {
     const state = tracking.current;
 
-    if (!article || !main.current || state.articleId !== article.article_id) {
+    if (!article || !main.current || state.articleId !== article.articleId) {
       return;
     }
 
@@ -113,7 +113,7 @@ export function ReaderView({
     state.position = scrollPosition(main.current);
 
     if (
-      article.date_read === null &&
+      article.dateRead === null &&
       !state.markedRead &&
       crossedEnd(previous, state.position)
     ) {
@@ -131,12 +131,12 @@ export function ReaderView({
     }, PROGRESS_DEBOUNCE_MS);
   };
 
-  const read = article !== null && article.date_read !== null;
+  const read = article !== null && article.dateRead !== null;
 
   const byline = article
     ? [
         article.author,
-        article.publication_date && formatDate(article.publication_date),
+        article.publicationDate && formatDate(article.publicationDate),
       ].filter(Boolean)
     : [];
 
@@ -157,12 +157,12 @@ export function ReaderView({
             <Button
               variant='ghost'
               size='icon'
-              aria-label={article.is_favorited ? 'Unfavorite' : 'Favorite'}
-              aria-pressed={article.is_favorited}
-              title={article.is_favorited ? 'Unfavorite' : 'Favorite'}
+              aria-label={article.isFavorited ? 'Unfavorite' : 'Favorite'}
+              aria-pressed={article.isFavorited}
+              title={article.isFavorited ? 'Unfavorite' : 'Favorite'}
               onClick={onToggleFavorite}
             >
-              <Star className={cn(article.is_favorited && 'fill-current')} />
+              <Star className={cn(article.isFavorited && 'fill-current')} />
             </Button>
             <Button
               variant='ghost'
@@ -177,11 +177,11 @@ export function ReaderView({
             <Button
               variant='ghost'
               size='icon'
-              aria-label={article.is_archived ? 'Unarchive' : 'Archive'}
-              title={article.is_archived ? 'Unarchive' : 'Archive'}
+              aria-label={article.isArchived ? 'Unarchive' : 'Archive'}
+              title={article.isArchived ? 'Unarchive' : 'Archive'}
               onClick={onToggleArchive}
             >
-              {article.is_archived ? <ArchiveRestore /> : <Archive />}
+              {article.isArchived ? <ArchiveRestore /> : <Archive />}
             </Button>
             <Button asChild variant='ghost' size='icon'>
               <a
@@ -228,8 +228,8 @@ export function ReaderView({
               >
                 <p className='text-[13px] text-muted-foreground'>
                   {articleSource(article)}
-                  {article.reading_time_minutes !== null &&
-                    ` · ${article.reading_time_minutes} min read`}
+                  {article.readingTimeMinutes !== null &&
+                    ` · ${article.readingTimeMinutes} min read`}
                 </p>
                 <h1 className='mt-3.5 text-[32px] leading-[1.1] font-semibold tracking-[-0.04em] text-balance md:text-[40px]'>
                   {article.title ?? article.url}
@@ -273,7 +273,7 @@ export function ReaderView({
             onDelete={onDelete}
             highlights={highlights}
             onSelectHighlight={(highlight) =>
-              setActiveHighlightId(highlight.highlight_id)
+              setActiveHighlightId(highlight.highlightId)
             }
           />
         )}

@@ -49,14 +49,14 @@ export function useCreateHighlight(articleId: string) {
 
       return insertHighlight(highlights, {
         ...range,
-        highlight_id: `pending-${crypto.randomUUID()}`,
-        article_id: articleId,
-        context_before: null,
-        context_after: null,
+        highlightId: `pending-${crypto.randomUUID()}`,
+        articleId: articleId,
+        contextBefore: null,
+        contextAfter: null,
         color: DEFAULT_HIGHLIGHT_COLOR,
         note: null,
-        created_at: now,
-        updated_at: now,
+        createdAt: now,
+        updatedAt: now,
       });
     }
   );

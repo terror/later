@@ -3,6 +3,7 @@ use super::*;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema)]
 #[cfg_attr(feature = "sqlx", derive(FromRow))]
 #[cfg_attr(feature = "tsify", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
 pub struct Article {
   #[cfg_attr(feature = "tsify", tsify(type = "string"))]
   pub article_id: Uuid,

@@ -56,12 +56,12 @@ describe('readingStatus', () => {
     [null, 0, 'Unread'],
     [null, 0.42, '42% read'],
     ['2026-03-04T12:00:00Z', 0.42, 'Read Mar 4, 2026'],
-  ])('describes %p at %p as %p', (date_read, scroll_position, expected) => {
+  ])('describes %p at %p as %p', (dateRead, scrollPosition, expected) => {
     expect(
       readingStatus(
         {
-          date_read,
-          progress: { scroll_position, time_spent_seconds: 0 },
+          dateRead,
+          progress: { scrollPosition, timeSpentSeconds: 0 },
         } as Article,
         'UTC'
       )

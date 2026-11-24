@@ -174,7 +174,7 @@ export function useSaveArticle() {
     onSuccess: (article, _url, context) =>
       queryClient.setQueryData(articlesQuery.queryKey, (data) =>
         mapPages(data, (articles) =>
-          replaceArticle(articles, context.placeholder.article_id, article)
+          replaceArticle(articles, context.placeholder.articleId, article)
         )
       ),
     onSettled: () =>

@@ -7,10 +7,10 @@ export function cn(...inputs: ClassValue[]) {
 
 export function articleSource(article: {
   url: string;
-  site_name: string | null;
+  siteName: string | null;
 }): string {
-  if (article.site_name) {
-    return article.site_name;
+  if (article.siteName) {
+    return article.siteName;
   }
 
   try {

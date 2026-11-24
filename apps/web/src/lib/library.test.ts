@@ -17,47 +17,47 @@ import {
 
 function article(fields: Partial<Article>): Article {
   return {
-    article_id: 'foo',
+    articleId: 'foo',
     url: 'https://foo.com/',
     status: 'extracted',
     title: null,
     author: null,
     excerpt: null,
-    site_name: null,
+    siteName: null,
     lang: null,
     dir: null,
-    publication_date: null,
-    word_count: null,
-    reading_time_minutes: null,
-    is_archived: false,
-    is_favorited: false,
-    date_saved: '2026-03-12T00:00:00Z',
-    date_read: null,
-    progress: { scroll_position: 0, time_spent_seconds: 0 },
+    publicationDate: null,
+    wordCount: null,
+    readingTimeMinutes: null,
+    isArchived: false,
+    isFavorited: false,
+    dateSaved: '2026-03-12T00:00:00Z',
+    dateRead: null,
+    progress: { scrollPosition: 0, timeSpentSeconds: 0 },
     ...fields,
   };
 }
 
 const articles = [
   article({
-    article_id: 'a',
+    articleId: 'a',
     title: 'Foo',
-    date_saved: '2026-03-10T00:00:00Z',
+    dateSaved: '2026-03-10T00:00:00Z',
   }),
   article({
-    article_id: 'b',
+    articleId: 'b',
     title: 'Bar',
-    site_name: 'Baz',
-    is_favorited: true,
-    date_saved: '2026-03-12T00:00:00Z',
+    siteName: 'Baz',
+    isFavorited: true,
+    dateSaved: '2026-03-12T00:00:00Z',
   }),
   article({
-    article_id: 'c',
+    articleId: 'c',
     title: 'Qux',
     author: 'Bob',
-    is_archived: true,
-    is_favorited: true,
-    date_saved: '2026-03-11T00:00:00Z',
+    isArchived: true,
+    isFavorited: true,
+    dateSaved: '2026-03-11T00:00:00Z',
   }),
 ];
 
@@ -72,7 +72,7 @@ describe('filterArticles', () => {
     [{ view: 'inbox', query: 'foo.com', sort: 'newest' }, ['b', 'a']],
   ])('filters %p to %p', (options, expected) => {
     expect(
-      filterArticles(articles, options).map(({ article_id }) => article_id)
+      filterArticles(articles, options).map(({ articleId }) => articleId)
     ).toEqual(expected);
   });
 });
@@ -92,13 +92,9 @@ describe('patchArticle', () => {
     expect(
       patchArticle(articles, 'b', (article) => ({
         ...article,
-        is_archived: true,
+        isArchived: true,
       }))
-    ).toEqual([
-      articles[0],
-      { ...articles[1], is_archived: true },
-      articles[2],
-    ]);
+    ).toEqual([articles[0], { ...articles[1], isArchived: true }, articles[2]]);
   });
 });
 
@@ -108,18 +104,18 @@ describe('applyUpdate', () => {
   test.each<
     [Partial<Article>, Parameters<typeof applyUpdate>[1], Partial<Article>]
   >([
-    [{}, { is_favorited: true }, { is_favorited: true }],
-    [{}, { is_read: true }, { date_read: '2026-03-12T15:00:00.000Z' }],
+    [{}, { isFavorited: true }, { isFavorited: true }],
+    [{}, { isRead: true }, { dateRead: '2026-03-12T15:00:00.000Z' }],
     [
-      { date_read: '2026-03-10T00:00:00Z' },
-      { is_read: true },
-      { date_read: '2026-03-10T00:00:00Z' },
+      { dateRead: '2026-03-10T00:00:00Z' },
+      { isRead: true },
+      { dateRead: '2026-03-10T00:00:00Z' },
     ],
-    [{ date_read: '2026-03-10T00:00:00Z' }, { is_read: false }, {}],
+    [{ dateRead: '2026-03-10T00:00:00Z' }, { isRead: false }, {}],
     [
-      { date_read: '2026-03-10T00:00:00Z' },
-      { is_archived: true },
-      { date_read: '2026-03-10T00:00:00Z', is_archived: true },
+      { dateRead: '2026-03-10T00:00:00Z' },
+      { isArchived: true },
+      { dateRead: '2026-03-10T00:00:00Z', isArchived: true },
     ],
   ])('applies %p with %p', (fields, update, expected) => {
     expect(applyUpdate(article(fields), update, now)).toEqual(
@@ -133,15 +129,15 @@ describe('mapPages', () => {
     {
       data: {
         pages: [
-          { articles: articles.slice(0, 2), next_cursor: 'foo' },
-          { articles: articles.slice(2), next_cursor: null },
+          { articles: articles.slice(0, 2), nextCursor: 'foo' },
+          { articles: articles.slice(2), nextCursor: null },
         ],
         pageParams: [null, 'foo'],
       },
       expected: {
         pages: [
-          { articles: [articles[0]], next_cursor: 'foo' },
-          { articles: [articles[2]], next_cursor: null },
+          { articles: [articles[0]], nextCursor: 'foo' },
+          { articles: [articles[2]], nextCursor: null },
         ],
         pageParams: [null, 'foo'],
       },
@@ -159,15 +155,15 @@ describe('prependArticle', () => {
     {
       data: {
         pages: [
-          { articles: [articles[0]], next_cursor: 'foo' },
-          { articles: [articles[1]], next_cursor: null },
+          { articles: [articles[0]], nextCursor: 'foo' },
+          { articles: [articles[1]], nextCursor: null },
         ],
         pageParams: [null, 'foo'],
       },
       expected: {
         pages: [
-          { articles: [articles[2], articles[0]], next_cursor: 'foo' },
-          { articles: [articles[1]], next_cursor: null },
+          { articles: [articles[2], articles[0]], nextCursor: 'foo' },
+          { articles: [articles[1]], nextCursor: null },
         ],
         pageParams: [null, 'foo'],
       },
@@ -195,8 +191,8 @@ describe('pendingArticle', () => {
 describe('replaceArticle', () => {
   test.each<[Article, Article[]]>([
     [
-      { ...articles[1], article_id: 'd' },
-      [articles[0], { ...articles[1], article_id: 'd' }, articles[2]],
+      { ...articles[1], articleId: 'd' },
+      [articles[0], { ...articles[1], articleId: 'd' }, articles[2]],
     ],
     [articles[2], [articles[0], articles[2]]],
   ])(

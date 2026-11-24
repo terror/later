@@ -69,7 +69,7 @@ export function ArticleContent({
   }, [activeHighlightId]);
 
   const active = highlights.find(
-    (highlight) => highlight.highlight_id === activeHighlightId
+    (highlight) => highlight.highlightId === activeHighlightId
   );
 
   const activeAnchor = useMemo<RefObject<Measurable>>(
@@ -170,14 +170,14 @@ export function ArticleContent({
         <PopoverContent side='bottom' align='start'>
           {active && (
             <HighlightEditor
-              key={active.highlight_id}
+              key={active.highlightId}
               highlight={active}
               onSave={(note) => {
-                onUpdateHighlight(active.highlight_id, { note });
+                onUpdateHighlight(active.highlightId, { note });
                 onActiveHighlightChange(null);
               }}
               onDelete={() => {
-                onDeleteHighlight(active.highlight_id);
+                onDeleteHighlight(active.highlightId);
                 onActiveHighlightChange(null);
               }}
             />

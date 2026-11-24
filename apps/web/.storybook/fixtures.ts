@@ -10,11 +10,11 @@ import { pendingArticle } from '../src/lib/library';
 export const now = new Date('2026-03-12T15:00:00Z');
 
 export const user: User = {
-  user_id: '00000000-0000-0000-0000-000000000001',
+  userId: '00000000-0000-0000-0000-000000000001',
   email: 'sam@example.com',
   name: 'Sam Rivera',
-  created_at: '2026-01-02T00:00:00Z',
-  updated_at: '2026-01-02T00:00:00Z',
+  createdAt: '2026-01-02T00:00:00Z',
+  updatedAt: '2026-01-02T00:00:00Z',
 };
 
 function article(
@@ -22,20 +22,20 @@ function article(
   fields: Partial<Article> &
     Pick<
       Article,
-      'title' | 'site_name' | 'author' | 'excerpt' | 'date_saved' | 'url'
-    > & { word_count: number }
+      'title' | 'siteName' | 'author' | 'excerpt' | 'dateSaved' | 'url'
+    > & { wordCount: number }
 ): Article {
   return {
-    article_id: `00000000-0000-0000-0000-00000000010${index}`,
+    articleId: `00000000-0000-0000-0000-00000000010${index}`,
     status: 'extracted',
     lang: 'en',
     dir: null,
-    publication_date: null,
-    reading_time_minutes: Math.ceil(fields.word_count / 238),
-    is_archived: false,
-    is_favorited: false,
-    date_read: null,
-    progress: { scroll_position: 0, time_spent_seconds: 0 },
+    publicationDate: null,
+    readingTimeMinutes: Math.ceil(fields.wordCount / 238),
+    isArchived: false,
+    isFavorited: false,
+    dateRead: null,
+    progress: { scrollPosition: 0, timeSpentSeconds: 0 },
     ...fields,
   };
 }
@@ -43,89 +43,89 @@ function article(
 export const articles: Article[] = [
   article(1, {
     title: 'The case for reading slowly',
-    site_name: 'Field Notes',
+    siteName: 'Field Notes',
     author: 'Mara Ellison',
     url: 'https://fieldnotes.example.com/reading-slowly',
     excerpt:
       'Speed is the wrong measure for most of what we read. A slower pace leaves room for the second thought, the one that usually matters.',
-    word_count: 2840,
-    publication_date: '2026-03-04T09:00:00Z',
-    date_saved: '2026-03-12T13:00:00Z',
+    wordCount: 2840,
+    publicationDate: '2026-03-04T09:00:00Z',
+    dateSaved: '2026-03-12T13:00:00Z',
   }),
   article(2, {
     title: 'How small teams ship large systems',
-    site_name: 'Tidewater Engineering',
+    siteName: 'Tidewater Engineering',
     author: 'Jonah Reyes',
     url: 'https://tidewater.example.com/small-teams',
     excerpt:
       'Fewer people means fewer handoffs. The trick is choosing boundaries that a single person can hold in their head.',
-    word_count: 4310,
-    is_favorited: true,
-    publication_date: '2026-02-27T09:00:00Z',
-    date_saved: '2026-03-12T10:00:00Z',
+    wordCount: 4310,
+    isFavorited: true,
+    publicationDate: '2026-02-27T09:00:00Z',
+    dateSaved: '2026-03-12T10:00:00Z',
   }),
   article(3, {
     title: 'A field guide to plain text',
-    site_name: null,
+    siteName: null,
     author: 'Ines Okafor',
     url: 'https://plaintext.example.com/field-guide',
     excerpt:
       'Files that outlive the apps that made them, and the small habits that keep them useful for decades.',
-    word_count: 1620,
-    progress: { scroll_position: 0.42, time_spent_seconds: 190 },
-    date_saved: '2026-03-11T18:00:00Z',
+    wordCount: 1620,
+    progress: { scrollPosition: 0.42, timeSpentSeconds: 190 },
+    dateSaved: '2026-03-11T18:00:00Z',
   }),
   article(4, {
     title: 'What the archive remembers',
-    site_name: 'The Long Room',
+    siteName: 'The Long Room',
     author: 'Theo Marchetti',
     url: 'https://longroom.example.com/archive',
     excerpt:
       'Libraries keep more than books. They keep the order things were found in, and that order is a story too.',
-    word_count: 5280,
-    is_favorited: true,
-    date_saved: '2026-03-09T12:00:00Z',
+    wordCount: 5280,
+    isFavorited: true,
+    dateSaved: '2026-03-09T12:00:00Z',
   }),
   article(5, {
     title: 'Notes on attention',
-    site_name: 'Margins Weekly',
+    siteName: 'Margins Weekly',
     author: 'Ruth Calder',
     url: 'https://margins.example.com/attention',
     excerpt:
       'Attention is less a muscle than a garden. It grows toward whatever you return to.',
-    word_count: 2050,
-    date_read: '2026-03-10T20:00:00Z',
-    progress: { scroll_position: 1, time_spent_seconds: 540 },
-    date_saved: '2026-03-08T12:00:00Z',
+    wordCount: 2050,
+    dateRead: '2026-03-10T20:00:00Z',
+    progress: { scrollPosition: 1, timeSpentSeconds: 540 },
+    dateSaved: '2026-03-08T12:00:00Z',
   }),
   article(6, {
     title: 'Designing for the second read',
-    site_name: 'Studio Quarterly',
+    siteName: 'Studio Quarterly',
     author: 'Ama Boateng',
     url: 'https://studio.example.com/second-read',
     excerpt:
       'The first read is for the idea. The second is for the craft, and that is where good writing hides its work.',
-    word_count: 3360,
-    date_saved: '2026-02-20T12:00:00Z',
+    wordCount: 3360,
+    dateSaved: '2026-02-20T12:00:00Z',
   }),
   article(7, {
     title: 'Why we stopped estimating',
-    site_name: 'Tidewater Engineering',
+    siteName: 'Tidewater Engineering',
     author: 'Jonah Reyes',
     url: 'https://tidewater.example.com/estimating',
     excerpt:
       'Estimates were a conversation we kept having with the calendar instead of each other.',
-    word_count: 1890,
-    is_archived: true,
-    date_saved: '2026-02-11T12:00:00Z',
+    wordCount: 1890,
+    isArchived: true,
+    dateSaved: '2026-02-11T12:00:00Z',
   }),
 ];
 
 export const library: Article[] = Array.from({ length: 36 }, (_, index) => ({
   ...articles[index % articles.length],
-  article_id: `00000000-0000-0000-0000-${String(index + 200).padStart(12, '0')}`,
-  is_archived: false,
-  date_saved: new Date(
+  articleId: `00000000-0000-0000-0000-${String(index + 200).padStart(12, '0')}`,
+  isArchived: false,
+  dateSaved: new Date(
     Date.parse('2026-03-12T13:00:00Z') - index * 9 * 60 * 60 * 1000
   ).toISOString(),
 }));
@@ -148,12 +148,12 @@ export const failed: Article = {
 export const extracted: Partial<Article> = {
   status: 'extracted',
   title: 'On margins',
-  site_name: 'Quiet Pages',
+  siteName: 'Quiet Pages',
   author: 'Lena Varga',
   excerpt:
     'The white space around a page is not empty. It is where the reader keeps their own notes.',
-  word_count: 1420,
-  reading_time_minutes: 6,
+  wordCount: 1420,
+  readingTimeMinutes: 6,
 };
 
 export const reading: ArticleWithContent = {
@@ -165,35 +165,35 @@ export const reading: ArticleWithContent = {
 export const resumed: ArticleWithContent = {
   ...reading,
   content: reading.content?.repeat(4) ?? null,
-  progress: { scroll_position: 0.5, time_spent_seconds: 240 },
+  progress: { scrollPosition: 0.5, timeSpentSeconds: 240 },
 };
 
 const readingText = (reading.content ?? '').replace(/<[^>]+>/g, '');
 
 function highlight(
   index: number,
-  selected_text: string,
+  selectedText: string,
   note: string | null = null
 ): Highlight {
-  const start_offset = readingText.indexOf(selected_text);
+  const startOffset = readingText.indexOf(selectedText);
 
-  const end_offset = start_offset + selected_text.length;
+  const endOffset = startOffset + selectedText.length;
 
   return {
-    highlight_id: `00000000-0000-0000-0000-00000000020${index}`,
-    article_id: reading.article_id,
-    selected_text,
-    context_before: readingText.slice(
-      Math.max(start_offset - 32, 0),
-      start_offset
+    highlightId: `00000000-0000-0000-0000-00000000020${index}`,
+    articleId: reading.articleId,
+    selectedText,
+    contextBefore: readingText.slice(
+      Math.max(startOffset - 32, 0),
+      startOffset
     ),
-    context_after: readingText.slice(end_offset, end_offset + 32),
-    start_offset,
-    end_offset,
+    contextAfter: readingText.slice(endOffset, endOffset + 32),
+    startOffset,
+    endOffset,
     color: '#FFEB3B',
     note,
-    created_at: '2026-03-12T14:00:00Z',
-    updated_at: '2026-03-12T14:00:00Z',
+    createdAt: '2026-03-12T14:00:00Z',
+    updatedAt: '2026-03-12T14:00:00Z',
   };
 }
 
