@@ -2,8 +2,8 @@ import { Logo } from '@/components/logo';
 import { useAuth } from '@/hooks/use-auth';
 import { createToken, getLoginUrl } from '@/lib/api';
 import { parseExtensionRedirect } from '@/lib/extension';
+import { useMutation } from '@tanstack/react-query';
 import { Github } from 'lucide-react';
-import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 export default function ConnectPage() {
@@ -11,35 +11,25 @@ export default function ConnectPage() {
 
   const [searchParams] = useSearchParams();
 
-  const [connecting, setConnecting] = useState(false);
-
-  const [error, setError] = useState(false);
-
   const redirect = parseExtensionRedirect(searchParams.get('redirect_uri'));
+
+  const connect = useMutation({
+    mutationFn: createToken,
+    onSuccess: (token) => {
+      if (redirect) {
+        window.location.replace(
+          `${redirect.href}#token=${encodeURIComponent(token)}`
+        );
+      }
+    },
+    onError: (error) => console.error(error),
+  });
+
+  const connecting = connect.isPending || connect.isSuccess;
 
   if (loading) {
     return null;
   }
-
-  const connect = async () => {
-    if (!redirect) {
-      return;
-    }
-
-    setConnecting(true);
-    setError(false);
-
-    try {
-      const token = await createToken();
-      window.location.replace(
-        `${redirect.href}#token=${encodeURIComponent(token)}`
-      );
-    } catch (error) {
-      console.error(error);
-      setConnecting(false);
-      setError(true);
-    }
-  };
 
   return (
     <div className='bg-background text-foreground flex min-h-screen flex-col px-6 pt-10 pb-14 antialiased sm:px-12'>
@@ -85,14 +75,14 @@ export default function ConnectPage() {
             </h1>
             <button
               type='button'
-              onClick={connect}
+              onClick={() => connect.mutate()}
               disabled={connecting}
               className='bg-primary text-primary-foreground mt-12 flex h-13 items-center rounded-xl px-6 text-base font-medium disabled:opacity-60'
             >
               {connecting ? 'Connecting…' : 'Connect'}
             </button>
             <p className='text-muted-foreground mt-5 text-sm'>
-              {error
+              {connect.isError
                 ? 'Something went wrong. Try again.'
                 : `Signed in as ${user.email}.`}
             </p>

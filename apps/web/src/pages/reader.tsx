@@ -1,20 +1,29 @@
 import { ReaderView } from '@/components/reader-view';
+import {
+  useDeleteArticle,
+  useUpdateArticle,
+} from '@/hooks/use-article-mutations';
 import { useAuth } from '@/hooks/use-auth';
-import { deleteArticle, getArticle, updateArticle } from '@/lib/api';
-import type { ArticleWithContent } from '@/lib/types';
-import { useEffect, useState } from 'react';
+import { articleQuery } from '@/lib/queries';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 export default function ReaderPage() {
   const { user, loading } = useAuth();
 
-  const { articleId } = useParams();
+  const { articleId = '' } = useParams();
 
   const navigate = useNavigate();
 
-  const [article, setArticle] = useState<ArticleWithContent | null>(null);
+  const { data: article, isError } = useQuery({
+    ...articleQuery(articleId),
+    enabled: user !== null && articleId !== '',
+  });
 
-  const [error, setError] = useState(false);
+  const update = useUpdateArticle();
+
+  const remove = useDeleteArticle();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -22,56 +31,27 @@ export default function ReaderPage() {
     }
   }, [user, loading, navigate]);
 
-  useEffect(() => {
-    if (!user || !articleId) {
-      return;
-    }
-
-    getArticle(articleId)
-      .then(setArticle)
-      .catch((error) => {
-        console.error(error);
-        setError(true);
-      });
-  }, [user, articleId]);
-
-  const update = async (fields: {
-    is_archived?: boolean;
-    is_favorited?: boolean;
-  }) => {
-    if (!article) {
-      return;
-    }
-
-    try {
-      const updated = await updateArticle(article.article_id, fields);
-
-      setArticle({ ...article, ...updated });
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const remove = async () => {
-    if (!article) {
-      return;
-    }
-
-    try {
-      await deleteArticle(article.article_id);
-      navigate('/');
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
   return (
     <ReaderView
-      article={article}
-      error={error}
-      onToggleFavorite={() => update({ is_favorited: !article?.is_favorited })}
-      onToggleArchive={() => update({ is_archived: !article?.is_archived })}
-      onDelete={remove}
+      article={article ?? null}
+      error={isError}
+      onToggleFavorite={() =>
+        article &&
+        update.mutate({
+          articleId,
+          update: { is_favorited: !article.is_favorited },
+        })
+      }
+      onToggleArchive={() =>
+        article &&
+        update.mutate({
+          articleId,
+          update: { is_archived: !article.is_archived },
+        })
+      }
+      onDelete={() =>
+        remove.mutate(articleId, { onSuccess: () => navigate('/') })
+      }
     />
   );
 }

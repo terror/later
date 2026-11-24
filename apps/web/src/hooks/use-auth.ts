@@ -1,12 +1,8 @@
-import { AuthContext } from '@/contexts/auth-context';
-import { useContext } from 'react';
+import { sessionQuery } from '@/lib/queries';
+import { useQuery } from '@tanstack/react-query';
 
 export function useAuth() {
-  const context = useContext(AuthContext);
+  const { data, isPending } = useQuery(sessionQuery);
 
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-
-  return context;
+  return { user: data ?? null, loading: isPending };
 }

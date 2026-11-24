@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
-import { countArticles, filterArticles } from './library';
+import {
+  countArticles,
+  filterArticles,
+  patchArticle,
+  removeArticle,
+} from './library';
 import type { Article } from './types';
 
 function article(fields: Partial<Article>): Article {
@@ -74,5 +79,21 @@ describe('countArticles', () => {
       favorites: 2,
       archive: 1,
     });
+  });
+});
+
+describe('patchArticle', () => {
+  test('updates only the matching article', () => {
+    expect(patchArticle(articles, 'b', { is_archived: true })).toEqual([
+      articles[0],
+      { ...articles[1], is_archived: true },
+      articles[2],
+    ]);
+  });
+});
+
+describe('removeArticle', () => {
+  test('removes only the matching article', () => {
+    expect(removeArticle(articles, 'b')).toEqual([articles[0], articles[2]]);
   });
 });
