@@ -38,7 +38,6 @@ use {
     TokenResponse, TokenUrl, basic::BasicClient as OAuth2BasicClient,
   },
   rate_limit::RateLimitKeyExtractor,
-  readability::{Readability, ReadabilityOptions},
   redis::{
     AsyncCommands, Client, IntoConnectionInfo, RedisResult,
     aio::ConnectionManager,
