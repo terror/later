@@ -1,76 +1,30 @@
 import { browser } from '#imports';
 import { Button } from '@/components/ui/button';
-import { UnauthorizedError, WEB_URL, request, token } from '@/utils/api';
-import { useEffect, useState } from 'react';
-
-type Status =
-  | { kind: 'saving' }
-  | { kind: 'saved'; title: string | null }
-  | { kind: 'error'; message: string };
-
-async function savePage(): Promise<string | null> {
-  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-
-  if (tab?.id === undefined || !tab.url || !/^https?:/.test(tab.url)) {
-    throw new Error('This page can’t be saved.');
-  }
-
-  const html = await browser.scripting
-    .executeScript({
-      target: { tabId: tab.id },
-      func: () => document.documentElement.outerHTML,
-    })
-    .then(([result]) => result?.result as string | undefined)
-    .catch(() => undefined);
-
-  const response = await request('/articles', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url: tab.url, html }),
-  });
-
-  if (!response.ok) {
-    throw new Error('Something went wrong. Try again.');
-  }
-
-  const article = await response.json();
-
-  return article.title ?? null;
-}
+import { useConnected } from '@/hooks/use-connected';
+import { useDisconnect, useSavePage } from '@/hooks/use-popup-mutations';
+import { saveStatus } from '@/lib/save';
+import { WEB_URL } from '@/utils/api';
+import { useEffect } from 'react';
 
 export default function App() {
-  const [connected, setConnected] = useState<boolean | null>(null);
+  const connected = useConnected();
 
-  const [status, setStatus] = useState<Status>({ kind: 'saving' });
+  const save = useSavePage();
+
+  const disconnect = useDisconnect();
+
+  const { mutate } = save;
 
   useEffect(() => {
-    token.getValue().then((value) => setConnected(value !== null));
-    return token.watch((value) => setConnected(value !== null));
-  }, []);
-
-  useEffect(() => {
-    if (!connected) {
-      return;
+    if (connected) {
+      mutate();
     }
+  }, [connected, mutate]);
 
-    setStatus({ kind: 'saving' });
-
-    savePage()
-      .then((title) => setStatus({ kind: 'saved', title }))
-      .catch((error) => {
-        if (!(error instanceof UnauthorizedError)) {
-          setStatus({ kind: 'error', message: error.message });
-        }
-      });
-  }, [connected]);
+  const status = saveStatus(save);
 
   const connect = () => {
     browser.runtime.sendMessage('connect');
-  };
-
-  const disconnect = async () => {
-    await request('/tokens', { method: 'DELETE' }).catch(() => undefined);
-    await token.removeValue();
   };
 
   if (connected === null) {
@@ -126,7 +80,7 @@ export default function App() {
         <button
           type='button'
           className='cursor-pointer hover:text-neutral-900'
-          onClick={disconnect}
+          onClick={() => disconnect.mutate()}
         >
           Disconnect
         </button>
