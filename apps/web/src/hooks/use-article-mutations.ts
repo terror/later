@@ -1,12 +1,12 @@
 import { deleteArticle, saveProgress, updateArticle } from '@/lib/api';
-import {
-  type ArticleUpdate,
-  applyUpdate,
-  patchArticle,
-  removeArticle,
-} from '@/lib/library';
+import { applyUpdate, patchArticle, removeArticle } from '@/lib/library';
 import { articleQuery, articlesQuery } from '@/lib/queries';
-import type { Article, ArticleWithContent, ReadingProgress } from '@/lib/types';
+import type {
+  Article,
+  ArticleWithContent,
+  ReadingProgress,
+  UpdateArticle,
+} from '@later/types';
 import {
   type QueryClient,
   useMutation,
@@ -60,7 +60,7 @@ export function useUpdateArticle() {
       update,
     }: {
       articleId: string;
-      update: ArticleUpdate;
+      update: UpdateArticle;
     }) => updateArticle(articleId, update),
     onMutate: ({ articleId, update }) => {
       const now = new Date();

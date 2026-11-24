@@ -81,3 +81,9 @@ test-api:
 [group: 'test']
 test-web:
   bun test
+
+[group: 'codegen']
+types:
+  cargo rustc --package model --lib --crate-type cdylib --features tsify --target wasm32-unknown-unknown
+  wasm-bindgen --out-dir target/types --typescript --target bundler target/wasm32-unknown-unknown/debug/model.wasm
+  cp target/types/model.d.ts packages/types/index.d.ts

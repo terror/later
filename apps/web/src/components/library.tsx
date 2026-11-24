@@ -13,7 +13,7 @@ import {
   countArticles,
   filterArticles,
 } from '@/lib/library';
-import type { Article, User } from '@/lib/types';
+import type { Article, User } from '@later/types';
 import { ArrowDownUp, LogOut } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 

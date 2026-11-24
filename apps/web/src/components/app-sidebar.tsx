@@ -2,8 +2,8 @@ import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { NavItem } from '@/components/ui/nav-item';
 import { VIEWS, type View } from '@/lib/library';
-import type { User } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import type { User } from '@later/types';
 import { Archive, Inbox, LogOut, Star } from 'lucide-react';
 
 const ICONS = { inbox: Inbox, favorites: Star, archive: Archive };

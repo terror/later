@@ -4,7 +4,8 @@
   "workspaces": [
     "apps/desktop",
     "apps/extension",
-    "apps/web"
+    "apps/web",
+    "packages/types"
   ],
   "scripts": {
     "fmt": "prettier --write .",

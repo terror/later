@@ -5,19 +5,6 @@ const TRACKING_PARAMETERS: &[&str] = &[
   "mc_cid", "mc_eid", "msclkid", "wbraid", "yclid",
 ];
 
-#[derive(Debug, Deserialize, ToSchema)]
-pub(crate) struct SaveArticle {
-  html: Option<String>,
-  url: String,
-}
-
-#[derive(Debug, Deserialize, ToSchema)]
-pub(crate) struct UpdateArticle {
-  is_archived: Option<bool>,
-  is_favorited: Option<bool>,
-  is_read: Option<bool>,
-}
-
 fn normalize_url(url: &Url) -> Url {
   let mut normalized = url.clone();
 
@@ -133,7 +120,7 @@ fn check_progress(progress: &model::ReadingProgress) -> Result<(), BadRequest> {
   post,
   path = "/articles",
   tag = "articles",
-  request_body = SaveArticle,
+  request_body = model::SaveArticle,
   responses(
     (status = StatusCode::CREATED, body = model::Article),
     (status = StatusCode::OK, body = model::Article),
@@ -144,7 +131,7 @@ fn check_progress(progress: &model::ReadingProgress) -> Result<(), BadRequest> {
 pub(crate) async fn save(
   user: User,
   AppState(db): AppState<Db>,
-  Json(request): Json<SaveArticle>,
+  Json(request): Json<model::SaveArticle>,
 ) -> Result<impl IntoResponse> {
   let url = Url::parse(&request.url)
     .ok()
@@ -221,7 +208,7 @@ pub(crate) async fn save_progress(
   path = "/articles/{article_id}",
   tag = "articles",
   params(("article_id" = Uuid, Path)),
-  request_body = UpdateArticle,
+  request_body = model::UpdateArticle,
   responses(
     (status = StatusCode::OK, body = model::Article),
     (status = StatusCode::NOT_FOUND),
@@ -232,7 +219,7 @@ pub(crate) async fn update(
   user: User,
   AppState(db): AppState<Db>,
   Path(article_id): Path<Uuid>,
-  Json(request): Json<UpdateArticle>,
+  Json(request): Json<model::UpdateArticle>,
 ) -> Result<Json<model::Article>> {
   Ok(Json(
     db.update_article(

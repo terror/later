@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 chrono = { version = "0.4.45", default-features = false }
-model = { path = "../model" }
+model = { path = "../model", features = ["sqlx"] }
 sqlx = { workspace = true }
 thiserror = "2.0.17"
 uuid = "1.29.3"

@@ -1,9 +1,9 @@
+import type { Article } from '@later/types';
 import { useState } from 'react';
 
 import { articles as fixtures, now, user } from '../../.storybook/fixtures';
 import preview from '../../.storybook/preview';
 import { applyUpdate } from '../lib/library';
-import type { Article } from '../lib/types';
 import { Library } from './library';
 
 function Example({
