@@ -60,7 +60,22 @@ jobs:
 
       - name: Test
         working-directory: apps/web
-        run: bun test
+        run: bun test --coverage 2>&1 | tee "$RUNNER_TEMP/coverage.txt"
+
+      - name: Coverage summary
+        run: |
+          {
+            echo '## Client coverage'
+            echo '```'
+            sed -n '/^-*|/,/^$/p' "$RUNNER_TEMP/coverage.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-coverage
+          path: apps/web/coverage
 
       - name: Build Storybook
         working-directory: apps/web
@@ -131,6 +146,12 @@ jobs:
           toolchain: stable
           components: clippy, rustfmt
 
+      - name: Install llvm-tools
+        run: rustup component add llvm-tools-preview
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
@@ -158,4 +179,23 @@ jobs:
         run: ./bin/clippy
 
       - name: Test
-        run: cargo test --workspace --all-targets --all-features
+        run: cargo llvm-cov --workspace --all-targets --all-features --no-report
+
+      - name: Coverage report
+        run: |
+          cargo llvm-cov report --html
+          cargo llvm-cov report --lcov --output-path target/llvm-cov/lcov.info
+          {
+            echo '## Server coverage'
+            echo '```'
+            cargo llvm-cov report --summary-only
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-coverage
+          path: |
+            target/llvm-cov/html
+            target/llvm-cov/lcov.info
