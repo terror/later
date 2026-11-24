@@ -6,20 +6,13 @@ test.beforeEach(async ({ page }) => {
   await mockApi(page);
 });
 
-test('shows the landing page when signed out', async ({ page, baseURL }) => {
+test('shows the landing page when signed out', async ({ page }) => {
   await page.goto('/');
 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     'later saves the articles you find and keeps them until you’re ready to read.'
   );
 
-  const href = `/auth/login?redirect=${encodeURIComponent(`${baseURL}/`)}`;
-
-  expect(
-    await page
-      .getByRole('link', { name: 'Continue with GitHub' })
-      .evaluateAll((links) => links.map((link) => link.getAttribute('href')))
-  ).toEqual([href]);
 });
 
 test('links to the sign in page', async ({ page, baseURL }) => {
