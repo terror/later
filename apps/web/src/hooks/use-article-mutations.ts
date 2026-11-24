@@ -1,9 +1,17 @@
-import { deleteArticle, saveProgress, updateArticle } from '@/lib/api';
+import {
+  deleteArticle,
+  saveArticle,
+  saveProgress,
+  updateArticle,
+} from '@/lib/api';
 import {
   applyUpdate,
   mapPages,
   patchArticle,
+  pendingArticle,
+  prependArticle,
   removeArticle,
+  replaceArticle,
 } from '@/lib/library';
 import { articleQuery, articlesQuery } from '@/lib/queries';
 import type {
@@ -129,6 +137,46 @@ export function useDeleteArticle() {
     },
     onSuccess: (_data, articleId) =>
       queryClient.removeQueries({ queryKey: articleQuery(articleId).queryKey }),
+    onSettled: () =>
+      queryClient.invalidateQueries({
+        queryKey: articlesQuery.queryKey,
+        exact: true,
+      }),
+  });
+}
+
+export function useSaveArticle() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: saveArticle,
+    onMutate: async (url: string) => {
+      await queryClient.cancelQueries({ queryKey: articlesQuery.queryKey });
+
+      const articles = queryClient.getQueryData(articlesQuery.queryKey);
+
+      const placeholder = pendingArticle(
+        `pending-${crypto.randomUUID()}`,
+        url,
+        new Date().toISOString()
+      );
+
+      queryClient.setQueryData(articlesQuery.queryKey, (data) =>
+        prependArticle(data, placeholder)
+      );
+
+      return { articles, placeholder };
+    },
+    onError: (error, _url, context) => {
+      console.error(error);
+      queryClient.setQueryData(articlesQuery.queryKey, context?.articles);
+    },
+    onSuccess: (article, _url, context) =>
+      queryClient.setQueryData(articlesQuery.queryKey, (data) =>
+        mapPages(data, (articles) =>
+          replaceArticle(articles, context.placeholder.article_id, article)
+        )
+      ),
     onSettled: () =>
       queryClient.invalidateQueries({
         queryKey: articlesQuery.queryKey,

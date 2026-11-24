@@ -3,6 +3,7 @@
 export interface Article {
     article_id: string;
     url: string;
+    status: ArticleStatus;
     title: string | null;
     author: string | null;
     excerpt: string | null;
@@ -100,3 +101,5 @@ export interface User {
      */
     updated_at: string;
 }
+
+export type ArticleStatus = "pending" | "extracted" | "failed";

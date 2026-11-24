@@ -5,6 +5,8 @@ import type {
   User,
 } from '@later/types';
 
+import { pendingArticle } from '../src/lib/library';
+
 export const now = new Date('2026-03-12T15:00:00Z');
 
 export const user: User = {
@@ -25,6 +27,7 @@ function article(
 ): Article {
   return {
     article_id: `00000000-0000-0000-0000-00000000010${index}`,
+    status: 'extracted',
     lang: 'en',
     dir: null,
     publication_date: null,
@@ -126,6 +129,32 @@ export const library: Article[] = Array.from({ length: 36 }, (_, index) => ({
     Date.parse('2026-03-12T13:00:00Z') - index * 9 * 60 * 60 * 1000
   ).toISOString(),
 }));
+
+export const pending: Article = pendingArticle(
+  '00000000-0000-0000-0000-000000000201',
+  'https://quietpages.example.com/essays/on-margins',
+  '2026-03-12T14:58:00Z'
+);
+
+export const failed: Article = {
+  ...pendingArticle(
+    '00000000-0000-0000-0000-000000000202',
+    'https://paywall.example.com/story/1234',
+    '2026-03-12T14:30:00Z'
+  ),
+  status: 'failed',
+};
+
+export const extracted: Partial<Article> = {
+  status: 'extracted',
+  title: 'On margins',
+  site_name: 'Quiet Pages',
+  author: 'Lena Varga',
+  excerpt:
+    'The white space around a page is not empty. It is where the reader keeps their own notes.',
+  word_count: 1420,
+  reading_time_minutes: 6,
+};
 
 export const reading: ArticleWithContent = {
   ...articles[0],

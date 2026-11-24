@@ -150,3 +150,28 @@ test('deletes from the info panel', async ({ page, baseURL }) => {
     'Inbox1'
   );
 });
+
+test('adds a link and waits for it to be fetched', async ({ page }) => {
+  const request = page.waitForRequest((request) => request.method() === 'POST');
+
+  await page.getByRole('button', { name: 'Add link' }).click();
+
+  await page
+    .getByRole('textbox', { name: 'URL' })
+    .fill('https://example.com/qux');
+
+  await page.getByRole('button', { name: 'Save' }).click();
+
+  expect((await request).postDataJSON()).toEqual({
+    url: 'https://example.com/qux',
+  });
+
+  await expect(rows(page).first()).toHaveText(
+    'E https://example.com/qux Just now example.com · Fetching page…',
+    { useInnerText: true }
+  );
+
+  await expect(rows(page).first()).toHaveText('E qux Just now example.com', {
+    useInnerText: true,
+  });
+});

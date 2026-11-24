@@ -74,6 +74,13 @@ export function getArticle(articleId: string): Promise<ArticleWithContent> {
   return request(`/articles/${articleId}`);
 }
 
+export function saveArticle(url: string): Promise<Article> {
+  return request('/articles', {
+    method: 'POST',
+    body: JSON.stringify({ url }),
+  });
+}
+
 export function updateArticle(
   articleId: string,
   update: UpdateArticle

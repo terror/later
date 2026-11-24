@@ -2,18 +2,24 @@ import type { Article } from '@later/types';
 import { describe, expect, test } from 'bun:test';
 
 import {
+  POLL_INTERVAL,
   applyUpdate,
   countArticles,
   filterArticles,
   mapPages,
   patchArticle,
+  pendingArticle,
+  pollInterval,
+  prependArticle,
   removeArticle,
+  replaceArticle,
 } from './library';
 
 function article(fields: Partial<Article>): Article {
   return {
     article_id: 'foo',
     url: 'https://foo.com/',
+    status: 'extracted',
     title: null,
     author: null,
     excerpt: null,
@@ -148,8 +154,66 @@ describe('mapPages', () => {
   });
 });
 
+describe('prependArticle', () => {
+  test.each([
+    {
+      data: {
+        pages: [
+          { articles: [articles[0]], next_cursor: 'foo' },
+          { articles: [articles[1]], next_cursor: null },
+        ],
+        pageParams: [null, 'foo'],
+      },
+      expected: {
+        pages: [
+          { articles: [articles[2], articles[0]], next_cursor: 'foo' },
+          { articles: [articles[1]], next_cursor: null },
+        ],
+        pageParams: [null, 'foo'],
+      },
+    },
+    { data: undefined, expected: undefined },
+  ])('prepends to the first page of $data', ({ data, expected }) => {
+    expect(prependArticle(data, articles[2])).toEqual(expected);
+  });
+});
+
 describe('removeArticle', () => {
   test('removes only the matching article', () => {
     expect(removeArticle(articles, 'b')).toEqual([articles[0], articles[2]]);
+  });
+});
+
+describe('pendingArticle', () => {
+  test('creates an empty pending article', () => {
+    expect(
+      pendingArticle('foo', 'https://foo.com/', '2026-03-12T00:00:00Z')
+    ).toEqual(article({ status: 'pending' }));
+  });
+});
+
+describe('replaceArticle', () => {
+  test.each<[Article, Article[]]>([
+    [
+      { ...articles[1], article_id: 'd' },
+      [articles[0], { ...articles[1], article_id: 'd' }, articles[2]],
+    ],
+    [articles[2], [articles[0], articles[2]]],
+  ])(
+    'replaces the matching article and drops duplicates %#',
+    (article, expected) => {
+      expect(replaceArticle(articles, 'b', article)).toEqual(expected);
+    }
+  );
+});
+
+describe('pollInterval', () => {
+  test.each<[Article[], number | false]>([
+    [[], false],
+    [articles, false],
+    [[article({ status: 'failed' })], false],
+    [[...articles, article({ status: 'pending' })], POLL_INTERVAL],
+  ])('polls while any article is pending %#', (articles, expected) => {
+    expect(pollInterval(articles)).toEqual(expected);
   });
 });

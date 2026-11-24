@@ -1,5 +1,5 @@
 #[cfg(feature = "sqlx")]
-use sqlx::FromRow;
+use sqlx::{FromRow, Type};
 #[cfg(feature = "tsify")]
 use tsify::Tsify;
 use {
@@ -11,6 +11,7 @@ use {
 
 mod article;
 mod article_page;
+mod article_status;
 mod article_with_content;
 mod create_highlight;
 mod created_token;
@@ -23,7 +24,7 @@ mod update_highlight;
 mod user;
 
 pub use {
-  article::Article, article_page::ArticlePage,
+  article::Article, article_page::ArticlePage, article_status::ArticleStatus,
   article_with_content::ArticleWithContent, create_highlight::CreateHighlight,
   created_token::CreatedToken, highlight::Highlight,
   list_articles::ListArticles, reading_progress::ReadingProgress,

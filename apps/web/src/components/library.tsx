@@ -1,3 +1,4 @@
+import { AddLink } from '@/components/add-link';
 import { AppSidebar } from '@/components/app-sidebar';
 import { ArticleInfo } from '@/components/article-info';
 import { ArticleRow } from '@/components/article-row';
@@ -26,7 +27,7 @@ const LABELS: Record<View, string> = {
 const EMPTY: Record<View, { title: string; description: string }> = {
   inbox: {
     title: 'Nothing to read yet.',
-    description: 'Save pages with the later browser extension.',
+    description: 'Add a link, or save pages with the later browser extension.',
   },
   favorites: {
     title: 'No favorites yet.',
@@ -56,6 +57,7 @@ export function Library({
   onToggleArchive,
   onToggleRead,
   onDelete,
+  onAddLink,
 }: {
   articles: Article[] | null;
   error?: boolean;
@@ -69,6 +71,7 @@ export function Library({
   onToggleArchive: (article: Article) => void;
   onToggleRead: (article: Article) => void;
   onDelete: (article: Article) => void;
+  onAddLink: (url: string) => void;
 }) {
   const [view, setView] = useState<View>('inbox');
 
@@ -185,6 +188,7 @@ export function Library({
               <ArrowDownUp />
               {SORT_LABELS[sort]}
             </Button>
+            <AddLink onAdd={onAddLink} />
           </div>
           <SegmentedControl
             className='md:hidden'
