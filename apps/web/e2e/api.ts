@@ -1,5 +1,6 @@
 import type {
   Article,
+  ArticlePage,
   ArticleWithContent,
   CreatedToken,
   UpdateArticle,
@@ -42,7 +43,9 @@ export async function mockApi(
       }
 
       if (pathname === '/api/articles' && request.method() === 'GET') {
-        return route.fulfill({ json: { articles: saved, next_cursor: null } });
+        const page: ArticlePage = { articles: saved, next_cursor: null };
+
+        return route.fulfill({ json: page });
       }
 
       const progress = saved.find(
