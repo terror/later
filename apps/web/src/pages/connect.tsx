@@ -1,3 +1,4 @@
+import { Logo } from '@/components/logo';
 import { useAuth } from '@/hooks/use-auth';
 import { createToken, getLoginUrl } from '@/lib/api';
 import { parseExtensionRedirect } from '@/lib/extension';
@@ -41,20 +42,17 @@ export default function ConnectPage() {
   };
 
   return (
-    <div className='flex min-h-screen flex-col bg-white px-6 pt-10 pb-14 text-neutral-900 antialiased sm:px-12'>
+    <div className='bg-background text-foreground flex min-h-screen flex-col px-6 pt-10 pb-14 antialiased sm:px-12'>
       <header className='flex items-center justify-between gap-4'>
-        <Link
-          to='/'
-          className='text-[22px] leading-none font-semibold tracking-[-0.035em]'
-        >
-          later
+        <Link to='/' aria-label='later home'>
+          <Logo />
         </Link>
       </header>
       <main className='flex flex-1 flex-col items-start justify-center py-24'>
         {!redirect ? (
           <h1 className='text-4xl leading-[1.08] font-medium tracking-[-0.04em] sm:text-6xl'>
             This link isn&rsquo;t valid.
-            <span className='text-neutral-500'>
+            <span className='text-muted-foreground'>
               {' '}
               Open it from the extension.
             </span>
@@ -63,14 +61,14 @@ export default function ConnectPage() {
           <>
             <h1 className='text-4xl leading-[1.08] font-medium tracking-[-0.04em] sm:text-6xl'>
               Sign in
-              <span className='text-neutral-500'>
+              <span className='text-muted-foreground'>
                 {' '}
                 to connect the extension.
               </span>
             </h1>
             <a
               href={getLoginUrl()}
-              className='mt-12 flex h-13 items-center gap-2.5 rounded-xl bg-neutral-900 px-6 text-base font-medium text-white'
+              className='bg-primary text-primary-foreground mt-12 flex h-13 items-center gap-2.5 rounded-xl px-6 text-base font-medium'
             >
               <Github className='size-[18px]' aria-hidden />
               Continue with GitHub
@@ -80,17 +78,20 @@ export default function ConnectPage() {
           <>
             <h1 className='text-4xl leading-[1.08] font-medium tracking-[-0.04em] sm:text-6xl'>
               Connect the extension
-              <span className='text-neutral-500'> to save pages to later.</span>
+              <span className='text-muted-foreground'>
+                {' '}
+                to save pages to later.
+              </span>
             </h1>
             <button
               type='button'
               onClick={connect}
               disabled={connecting}
-              className='mt-12 flex h-13 items-center rounded-xl bg-neutral-900 px-6 text-base font-medium text-white disabled:opacity-60'
+              className='bg-primary text-primary-foreground mt-12 flex h-13 items-center rounded-xl px-6 text-base font-medium disabled:opacity-60'
             >
               {connecting ? 'Connecting…' : 'Connect'}
             </button>
-            <p className='mt-5 text-sm text-neutral-500'>
+            <p className='text-muted-foreground mt-5 text-sm'>
               {error
                 ? 'Something went wrong. Try again.'
                 : `Signed in as ${user.email}.`}

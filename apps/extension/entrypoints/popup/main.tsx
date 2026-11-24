@@ -1,5 +1,4 @@
 import '@/assets/tailwind.css';
-import '@fontsource-variable/inter';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
