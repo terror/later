@@ -97,10 +97,10 @@ test('favorites from the info panel', async ({ page, baseURL }) => {
   await details(page).getByRole('button', { name: 'Favorite' }).click();
 
   expect((await request).url()).toBe(
-    `${baseURL}/api/articles/${foo.article_id}`
+    `${baseURL}/api/articles/${foo.articleId}`
   );
 
-  expect((await request).postDataJSON()).toEqual({ is_favorited: true });
+  expect((await request).postDataJSON()).toEqual({ isFavorited: true });
 
   await expect(
     details(page).getByRole('button', { name: 'Unfavorite' })
@@ -119,10 +119,10 @@ test('archives from the info panel', async ({ page, baseURL }) => {
   await details(page).getByRole('button', { name: 'Archive' }).click();
 
   expect((await request).url()).toBe(
-    `${baseURL}/api/articles/${foo.article_id}`
+    `${baseURL}/api/articles/${foo.articleId}`
   );
 
-  expect((await request).postDataJSON()).toEqual({ is_archived: true });
+  expect((await request).postDataJSON()).toEqual({ isArchived: true });
 
   await expect(rows(page)).toHaveText(['E bar Yesterday example.com · 1 min'], {
     useInnerText: true,
@@ -139,7 +139,7 @@ test('deletes from the info panel', async ({ page, baseURL }) => {
   await details(page).getByRole('button', { name: 'Delete' }).click();
 
   expect((await request).url()).toBe(
-    `${baseURL}/api/articles/${foo.article_id}`
+    `${baseURL}/api/articles/${foo.articleId}`
   );
 
   await expect(rows(page)).toHaveText(['E bar Yesterday example.com · 1 min'], {

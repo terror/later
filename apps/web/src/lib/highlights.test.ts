@@ -11,24 +11,24 @@ import {
 
 function highlight(fields: Partial<Highlight>): Highlight {
   return {
-    highlight_id: 'foo',
-    article_id: 'bar',
-    selected_text: 'baz',
-    context_before: null,
-    context_after: null,
-    start_offset: 0,
-    end_offset: 3,
+    highlightId: 'foo',
+    articleId: 'bar',
+    selectedText: 'baz',
+    contextBefore: null,
+    contextAfter: null,
+    startOffset: 0,
+    endOffset: 3,
     color: '#FFEB3B',
     note: null,
-    created_at: '2026-03-12T00:00:00Z',
-    updated_at: '2026-03-12T00:00:00Z',
+    createdAt: '2026-03-12T00:00:00Z',
+    updatedAt: '2026-03-12T00:00:00Z',
     ...fields,
   };
 }
 
 const highlights = [
-  highlight({ highlight_id: 'a', start_offset: 0, end_offset: 3 }),
-  highlight({ highlight_id: 'b', start_offset: 4, end_offset: 7 }),
+  highlight({ highlightId: 'a', startOffset: 0, endOffset: 3 }),
+  highlight({ highlightId: 'b', startOffset: 4, endOffset: 7 }),
 ];
 
 function root(html: string): HTMLElement {
@@ -42,12 +42,12 @@ describe('insertHighlight', () => {
     [0, 1, ['c', 'a', 'b']],
     [0, 5, ['a', 'c', 'b']],
     [5, 6, ['a', 'b', 'c']],
-  ])('inserts %i..%i in order', (start_offset, end_offset, expected) => {
+  ])('inserts %i..%i in order', (startOffset, endOffset, expected) => {
     expect(
       insertHighlight(
         highlights,
-        highlight({ highlight_id: 'c', start_offset, end_offset })
-      ).map(({ highlight_id }) => highlight_id)
+        highlight({ highlightId: 'c', startOffset, endOffset })
+      ).map(({ highlightId }) => highlightId)
     ).toEqual(expected);
   });
 });
@@ -60,11 +60,11 @@ describe('patchHighlight', () => {
   ])('patches %o', (update, expected) => {
     expect(
       patchHighlight(
-        [highlight({ highlight_id: 'a', note: 'bar' }), highlights[1]],
+        [highlight({ highlightId: 'a', note: 'bar' }), highlights[1]],
         'a',
         update
       )
-    ).toEqual([highlight({ highlight_id: 'a', ...expected }), highlights[1]]);
+    ).toEqual([highlight({ highlightId: 'a', ...expected }), highlights[1]]);
   });
 });
 
@@ -76,12 +76,9 @@ describe('removeHighlight', () => {
 
 describe('selectionRange', () => {
   test.each([
-    [[0, 1, 0, 3], { start_offset: 1, end_offset: 3, selected_text: 'oo' }],
-    [
-      [3, 1, 5, 2],
-      { start_offset: 9, end_offset: 16, selected_text: 'az 😀qu' },
-    ],
-    [[1, 0, 2, 1], { start_offset: 3, end_offset: 5, selected_text: ' b' }],
+    [[0, 1, 0, 3], { startOffset: 1, endOffset: 3, selectedText: 'oo' }],
+    [[3, 1, 5, 2], { startOffset: 9, endOffset: 16, selectedText: 'az 😀qu' }],
+    [[1, 0, 2, 1], { startOffset: 3, endOffset: 5, selectedText: ' b' }],
     [[0, 1, 0, 1], null],
     [[1, 0, 1, 1], null],
   ])('selects %j', ([start, startOffset, end, endOffset], expected) => {
@@ -111,9 +108,9 @@ describe('selectionRange', () => {
     range.selectNodeContents(element.querySelector('b')!);
 
     expect(selectionRange(element, range)).toEqual({
-      start_offset: 4,
-      end_offset: 7,
-      selected_text: 'bar',
+      startOffset: 4,
+      endOffset: 7,
+      selectedText: 'bar',
     });
   });
 
@@ -147,11 +144,11 @@ describe('renderHighlights', () => {
 
     renderHighlights(
       element,
-      ranges.map(([start_offset, end_offset], index) =>
+      ranges.map(([startOffset, endOffset], index) =>
         highlight({
-          highlight_id: 'ab'[index],
-          start_offset,
-          end_offset,
+          highlightId: 'ab'[index],
+          startOffset,
+          endOffset,
         })
       )
     );

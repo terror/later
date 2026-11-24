@@ -16,7 +16,7 @@ export const articlesQuery = infiniteQueryOptions({
   queryFn: ({ pageParam }) =>
     getArticles({ cursor: pageParam ?? undefined, limit: PAGE_SIZE }),
   initialPageParam: null as string | null,
-  getNextPageParam: (page) => page.next_cursor,
+  getNextPageParam: (page) => page.nextCursor,
   refetchInterval: ({ state }) =>
     pollInterval(state.data?.pages.flatMap((page) => page.articles) ?? []),
 });

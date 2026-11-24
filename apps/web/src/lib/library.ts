@@ -15,14 +15,14 @@ export const VIEWS: { value: View; label: string }[] = [
 
 export function inView(article: Article, view: View): boolean {
   if (view === 'inbox') {
-    return !article.is_archived;
+    return !article.isArchived;
   }
 
   if (view === 'favorites') {
-    return article.is_favorited;
+    return article.isFavorited;
   }
 
-  return article.is_archived;
+  return article.isArchived;
 }
 
 export function countArticles(articles: Article[]): Record<View, number> {
@@ -47,29 +47,28 @@ export function filterArticles(
     .filter(
       (article) =>
         needle === '' ||
-        [article.title, article.site_name, article.author, article.url].some(
+        [article.title, article.siteName, article.author, article.url].some(
           (value) => value?.toLowerCase().includes(needle)
         )
     )
     .toSorted(
-      (a, b) =>
-        direction * (Date.parse(a.date_saved) - Date.parse(b.date_saved))
+      (a, b) => direction * (Date.parse(a.dateSaved) - Date.parse(b.dateSaved))
     );
 }
 
 export function applyUpdate<T extends Article>(
   article: T,
-  { is_read, ...fields }: UpdateArticle,
+  { isRead, ...fields }: UpdateArticle,
   now: Date
 ): T {
   return {
     ...article,
     ...fields,
-    date_read:
-      is_read === undefined
-        ? article.date_read
-        : is_read
-          ? (article.date_read ?? now.toISOString())
+    dateRead:
+      isRead === undefined
+        ? article.dateRead
+        : isRead
+          ? (article.dateRead ?? now.toISOString())
           : null,
   };
 }
@@ -80,7 +79,7 @@ export function patchArticle(
   patch: (article: Article) => Article
 ): Article[] {
   return articles.map((article) =>
-    article.article_id === articleId ? patch(article) : article
+    article.articleId === articleId ? patch(article) : article
   );
 }
 
@@ -117,7 +116,7 @@ export function removeArticle(
   articles: Article[],
   articleId: string
 ): Article[] {
-  return articles.filter((article) => article.article_id !== articleId);
+  return articles.filter((article) => article.articleId !== articleId);
 }
 
 export function pendingArticle(
@@ -126,23 +125,23 @@ export function pendingArticle(
   dateSaved: string
 ): Article {
   return {
-    article_id: articleId,
+    articleId: articleId,
     url,
     status: 'pending',
     title: null,
     author: null,
     excerpt: null,
-    site_name: null,
+    siteName: null,
     lang: null,
     dir: null,
-    publication_date: null,
-    word_count: null,
-    reading_time_minutes: null,
-    is_archived: false,
-    is_favorited: false,
-    date_saved: dateSaved,
-    date_read: null,
-    progress: { scroll_position: 0, time_spent_seconds: 0 },
+    publicationDate: null,
+    wordCount: null,
+    readingTimeMinutes: null,
+    isArchived: false,
+    isFavorited: false,
+    dateSaved: dateSaved,
+    dateRead: null,
+    progress: { scrollPosition: 0, timeSpentSeconds: 0 },
   };
 }
 
@@ -152,8 +151,8 @@ export function replaceArticle(
   article: Article
 ): Article[] {
   return articles
-    .filter(({ article_id }) => article_id !== article.article_id)
-    .map((other) => (other.article_id === articleId ? article : other));
+    .filter(({ articleId }) => articleId !== article.articleId)
+    .map((other) => (other.articleId === articleId ? article : other));
 }
 
 export function pollInterval(articles: Article[]): number | false {

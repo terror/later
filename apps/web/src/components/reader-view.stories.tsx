@@ -42,14 +42,14 @@ const meta = preview.meta({
           setHighlights((highlights) =>
             insertHighlight(highlights, {
               ...range,
-              highlight_id: crypto.randomUUID(),
-              article_id: reading.article_id,
-              context_before: null,
-              context_after: null,
+              highlightId: crypto.randomUUID(),
+              articleId: reading.articleId,
+              contextBefore: null,
+              contextAfter: null,
               color: DEFAULT_HIGHLIGHT_COLOR,
               note: null,
-              created_at: now.toISOString(),
-              updated_at: now.toISOString(),
+              createdAt: now.toISOString(),
+              updatedAt: now.toISOString(),
             })
           );
         }}
@@ -70,16 +70,16 @@ const meta = preview.meta({
           setArticle(
             (article) =>
               article &&
-              applyUpdate(article, { is_read: article.date_read === null }, now)
+              applyUpdate(article, { isRead: article.dateRead === null }, now)
           );
         }}
-        onProgress={(scroll_position) => {
-          args.onProgress(scroll_position);
+        onProgress={(scrollPosition) => {
+          args.onProgress(scrollPosition);
           setArticle(
             (article) =>
               article && {
                 ...article,
-                progress: { ...article.progress, scroll_position },
+                progress: { ...article.progress, scrollPosition },
               }
           );
         }}
@@ -99,7 +99,7 @@ export const Resumed = meta.story({
 });
 
 export const Read = meta.story({
-  args: { article: { ...reading, date_read: '2026-03-12T14:00:00Z' } },
+  args: { article: { ...reading, dateRead: '2026-03-12T14:00:00Z' } },
   globals: { viewport: { value: 'laptop', isRotated: false } },
 });
 

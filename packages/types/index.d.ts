@@ -1,28 +1,28 @@
 /* tslint:disable */
 /* eslint-disable */
 export interface Article {
-    article_id: string;
+    articleId: string;
     url: string;
     status: ArticleStatus;
     title: string | null;
     author: string | null;
     excerpt: string | null;
-    site_name: string | null;
+    siteName: string | null;
     lang: string | null;
     dir: string | null;
-    publication_date: string | null;
-    word_count: number | null;
-    reading_time_minutes: number | null;
-    is_archived: boolean;
-    is_favorited: boolean;
-    date_saved: string;
-    date_read: string | null;
+    publicationDate: string | null;
+    wordCount: number | null;
+    readingTimeMinutes: number | null;
+    isArchived: boolean;
+    isFavorited: boolean;
+    dateSaved: string;
+    dateRead: string | null;
     progress: ReadingProgress;
 }
 
 export interface ArticlePage {
     articles: Article[];
-    next_cursor: string | null;
+    nextCursor: string | null;
 }
 
 export interface ArticleWithContent extends Article {
@@ -30,9 +30,9 @@ export interface ArticleWithContent extends Article {
 }
 
 export interface CreateHighlight {
-    end_offset: number;
-    selected_text: string;
-    start_offset: number;
+    endOffset: number;
+    selectedText: string;
+    startOffset: number;
 }
 
 export interface CreatedToken {
@@ -40,17 +40,17 @@ export interface CreatedToken {
 }
 
 export interface Highlight {
-    highlight_id: string;
-    article_id: string;
-    selected_text: string;
-    context_before: string | null;
-    context_after: string | null;
-    start_offset: number;
-    end_offset: number;
+    highlightId: string;
+    articleId: string;
+    selectedText: string;
+    contextBefore: string | null;
+    contextAfter: string | null;
+    startOffset: number;
+    endOffset: number;
     color: string;
     note: string | null;
-    created_at: string;
-    updated_at: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface ListArticles {
@@ -59,8 +59,8 @@ export interface ListArticles {
 }
 
 export interface ReadingProgress {
-    scroll_position: number;
-    time_spent_seconds: number;
+    scrollPosition: number;
+    timeSpentSeconds: number;
 }
 
 export interface SaveArticle {
@@ -69,9 +69,9 @@ export interface SaveArticle {
 }
 
 export interface UpdateArticle {
-    is_archived?: boolean;
-    is_favorited?: boolean;
-    is_read?: boolean;
+    isArchived?: boolean;
+    isFavorited?: boolean;
+    isRead?: boolean;
 }
 
 export interface UpdateHighlight {
@@ -83,7 +83,7 @@ export interface User {
     /**
      * Unique identifier for the user.
      */
-    user_id: string;
+    userId: string;
     /**
      * Primary user email used for authentication.
      */
@@ -95,11 +95,11 @@ export interface User {
     /**
      * Timestamp for when the user record was created.
      */
-    created_at: string;
+    createdAt: string;
     /**
      * Timestamp for when the user record was most recently updated.
      */
-    updated_at: string;
+    updatedAt: string;
 }
 
 export type ArticleStatus = "pending" | "extracted" | "failed";

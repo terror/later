@@ -20,14 +20,14 @@ export function ArticleRow({
 }) {
   const source = articleSource(article);
 
-  const read = article.date_read !== null;
+  const read = article.dateRead !== null;
 
   const meta = [
     source,
     article.author,
-    article.reading_time_minutes === null
+    article.readingTimeMinutes === null
       ? null
-      : `${article.reading_time_minutes} min`,
+      : `${article.readingTimeMinutes} min`,
     read ? 'Read' : null,
   ]
     .filter(Boolean)
@@ -35,7 +35,7 @@ export function ArticleRow({
 
   return (
     <Link
-      to={`/read/${article.article_id}`}
+      to={`/read/${article.articleId}`}
       onMouseEnter={onActivate}
       onFocus={onActivate}
       className={cn(
@@ -55,7 +55,7 @@ export function ArticleRow({
             {article.title ?? article.url}
           </span>
           <span className='shrink-0 text-xs text-muted-foreground'>
-            {formatSaved(article.date_saved, now)}
+            {formatSaved(article.dateSaved, now)}
           </span>
         </span>
         <span className='flex items-center gap-3'>
@@ -68,9 +68,9 @@ export function ArticleRow({
               </>
             )}
           </span>
-          {!read && article.progress.scroll_position > 0 && (
+          {!read && article.progress.scrollPosition > 0 && (
             <Progress
-              value={article.progress.scroll_position}
+              value={article.progress.scrollPosition}
               aria-label={readingStatus(article)}
               className={cn('w-12 shrink-0', active && 'bg-background')}
             />

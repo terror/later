@@ -68,24 +68,24 @@ function Reader({ articleId }: { articleId: string }) {
         article &&
         update.mutate({
           articleId,
-          update: { is_favorited: !article.is_favorited },
+          update: { isFavorited: !article.isFavorited },
         })
       }
       onToggleArchive={() =>
         article &&
         update.mutate({
           articleId,
-          update: { is_archived: !article.is_archived },
+          update: { isArchived: !article.isArchived },
         })
       }
       onToggleRead={() =>
         article &&
         update.mutate({
           articleId,
-          update: { is_read: article.date_read === null },
+          update: { isRead: article.dateRead === null },
         })
       }
-      onProgress={(scroll_position) => {
+      onProgress={(scrollPosition) => {
         if (!article) {
           return;
         }
@@ -97,8 +97,8 @@ function Reader({ articleId }: { articleId: string }) {
         saveProgress.mutate({
           articleId,
           progress: {
-            scroll_position,
-            time_spent_seconds: article.progress.time_spent_seconds + seconds,
+            scrollPosition,
+            timeSpentSeconds: article.progress.timeSpentSeconds + seconds,
           },
         });
       }}

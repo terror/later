@@ -42,18 +42,18 @@ export function ArticleInfo({
 }) {
   const source = articleSource(article);
 
-  const read = article.date_read !== null;
+  const read = article.dateRead !== null;
 
-  const timeSpent = formatTimeSpent(article.progress.time_spent_seconds);
+  const timeSpent = formatTimeSpent(article.progress.timeSpentSeconds);
 
   const details = [
     ['Author', article.author],
     [
       'Published',
-      article.publication_date && formatDate(article.publication_date),
+      article.publicationDate && formatDate(article.publicationDate),
     ],
-    ['Saved', formatDate(article.date_saved)],
-    ['Length', formatLength(article.word_count, article.reading_time_minutes)],
+    ['Saved', formatDate(article.dateSaved)],
+    ['Length', formatLength(article.wordCount, article.readingTimeMinutes)],
   ].filter((detail): detail is [string, string] => Boolean(detail[1]));
 
   return (
@@ -101,7 +101,7 @@ export function ArticleInfo({
           )}
         </div>
         <Progress
-          value={read ? 1 : article.progress.scroll_position}
+          value={read ? 1 : article.progress.scrollPosition}
           aria-label='Reading progress'
         />
         <Button variant='secondary' size='sm' onClick={onToggleRead}>
@@ -112,7 +112,7 @@ export function ArticleInfo({
       <div className='flex gap-2'>
         {showRead && (
           <Button asChild className='flex-1'>
-            <Link to={`/read/${article.article_id}`}>
+            <Link to={`/read/${article.articleId}`}>
               <BookOpen />
               Read
             </Link>
@@ -121,21 +121,21 @@ export function ArticleInfo({
         <Button
           variant='secondary'
           size='icon'
-          aria-label={article.is_favorited ? 'Unfavorite' : 'Favorite'}
-          aria-pressed={article.is_favorited}
-          title={article.is_favorited ? 'Unfavorite' : 'Favorite'}
+          aria-label={article.isFavorited ? 'Unfavorite' : 'Favorite'}
+          aria-pressed={article.isFavorited}
+          title={article.isFavorited ? 'Unfavorite' : 'Favorite'}
           onClick={onToggleFavorite}
         >
-          <Star className={cn(article.is_favorited && 'fill-current')} />
+          <Star className={cn(article.isFavorited && 'fill-current')} />
         </Button>
         <Button
           variant='secondary'
           size='icon'
-          aria-label={article.is_archived ? 'Unarchive' : 'Archive'}
-          title={article.is_archived ? 'Unarchive' : 'Archive'}
+          aria-label={article.isArchived ? 'Unarchive' : 'Archive'}
+          title={article.isArchived ? 'Unarchive' : 'Archive'}
           onClick={onToggleArchive}
         >
-          {article.is_archived ? <ArchiveRestore /> : <Archive />}
+          {article.isArchived ? <ArchiveRestore /> : <Archive />}
         </Button>
         <Button asChild variant='secondary' size='icon'>
           <a

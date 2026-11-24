@@ -36,23 +36,23 @@ export default function LibraryPage() {
       now={now}
       onToggleFavorite={(article) =>
         update.mutate({
-          articleId: article.article_id,
-          update: { is_favorited: !article.is_favorited },
+          articleId: article.articleId,
+          update: { isFavorited: !article.isFavorited },
         })
       }
       onToggleArchive={(article) =>
         update.mutate({
-          articleId: article.article_id,
-          update: { is_archived: !article.is_archived },
+          articleId: article.articleId,
+          update: { isArchived: !article.isArchived },
         })
       }
       onToggleRead={(article) =>
         update.mutate({
-          articleId: article.article_id,
-          update: { is_read: article.date_read === null },
+          articleId: article.articleId,
+          update: { isRead: article.dateRead === null },
         })
       }
-      onDelete={(article) => remove.mutate(article.article_id)}
+      onDelete={(article) => remove.mutate(article.articleId)}
       onAddLink={(url) => save.mutate(url)}
     />
   );

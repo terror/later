@@ -29,18 +29,18 @@ describe('cn', () => {
 
 describe('articleSource', () => {
   test('prefers the site name', () => {
-    expect(articleSource({ url: 'https://foo.com/', site_name: 'bar' })).toBe(
+    expect(articleSource({ url: 'https://foo.com/', siteName: 'bar' })).toBe(
       'bar'
     );
   });
 
   test('falls back to the hostname without www', () => {
     expect(
-      articleSource({ url: 'https://www.foo.com/bar', site_name: null })
+      articleSource({ url: 'https://www.foo.com/bar', siteName: null })
     ).toBe('foo.com');
   });
 
   test('falls back to the URL when it cannot be parsed', () => {
-    expect(articleSource({ url: 'foo', site_name: null })).toBe('foo');
+    expect(articleSource({ url: 'foo', siteName: null })).toBe('foo');
   });
 });

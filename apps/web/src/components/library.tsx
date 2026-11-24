@@ -135,7 +135,7 @@ export function Library({
   const counts = countArticles(articles ?? []);
 
   const active =
-    visible.find((article) => article.article_id === activeId) ?? visible[0];
+    visible.find((article) => article.articleId === activeId) ?? visible[0];
 
   const empty = query.trim()
     ? {
@@ -212,12 +212,12 @@ export function Library({
           ) : (
             <ul className='flex flex-col gap-0.5'>
               {visible.map((article) => (
-                <li key={article.article_id}>
+                <li key={article.articleId}>
                   <ArticleRow
                     article={article}
-                    active={article.article_id === active?.article_id}
+                    active={article.articleId === active?.articleId}
                     now={now}
-                    onActivate={() => setActiveId(article.article_id)}
+                    onActivate={() => setActiveId(article.articleId)}
                   />
                 </li>
               ))}

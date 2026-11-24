@@ -21,7 +21,7 @@ export function HighlightList({
       ) : (
         <ul className='flex flex-col gap-2'>
           {highlights.map((highlight) => (
-            <li key={highlight.highlight_id}>
+            <li key={highlight.highlightId}>
               <button
                 type='button'
                 onClick={() => onSelect(highlight)}
@@ -32,7 +32,7 @@ export function HighlightList({
                     className='highlight'
                     style={{ '--highlight': highlight.color } as CSSProperties}
                   >
-                    {highlight.selected_text}
+                    {highlight.selectedText}
                   </mark>
                 </span>
                 {highlight.note && (

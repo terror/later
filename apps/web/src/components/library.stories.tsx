@@ -42,7 +42,7 @@ function Example({
     setArticles(
       (articles) =>
         articles?.map((other) =>
-          other.article_id === article.article_id
+          other.articleId === article.articleId
             ? { ...other, ...fields }
             : other
         ) ?? null
@@ -59,15 +59,15 @@ function Example({
       signOutHref='#'
       now={now}
       onToggleFavorite={(article) =>
-        update(article, { is_favorited: !article.is_favorited })
+        update(article, { isFavorited: !article.isFavorited })
       }
       onToggleArchive={(article) =>
-        update(article, { is_archived: !article.is_archived })
+        update(article, { isArchived: !article.isArchived })
       }
       onToggleRead={(article) =>
         update(
           article,
-          applyUpdate(article, { is_read: article.date_read === null }, now)
+          applyUpdate(article, { isRead: article.dateRead === null }, now)
         )
       }
       onAddLink={(url) => {
@@ -85,7 +85,7 @@ function Example({
         setArticles(
           (articles) =>
             articles?.filter(
-              ({ article_id }) => article_id !== article.article_id
+              ({ articleId }) => articleId !== article.articleId
             ) ?? null
         )
       }

@@ -205,7 +205,7 @@ mod tests {
         Method::POST,
         &path,
         Some(
-          json!({ "start_offset": 3, "end_offset": 6, "selected_text": "foo" }),
+          json!({ "startOffset": 3, "endOffset": 6, "selectedText": "foo" }),
         ),
       )
       .await;
@@ -245,7 +245,9 @@ mod tests {
         .request(
           Method::POST,
           &path,
-          Some(json!({ "start_offset": 1, "end_offset": 6, "selected_text": "foo" })),
+          Some(
+            json!({ "startOffset": 1, "endOffset": 6, "selectedText": "foo" }),
+          ),
         )
         .await,
       StatusCode::BAD_REQUEST,
@@ -257,7 +259,9 @@ mod tests {
         .request(
           Method::POST,
           &path,
-          Some(json!({ "start_offset": 3, "end_offset": 6, "selected_text": "bar" })),
+          Some(
+            json!({ "startOffset": 3, "endOffset": 6, "selectedText": "bar" }),
+          ),
         )
         .await,
       StatusCode::BAD_REQUEST,
@@ -269,7 +273,9 @@ mod tests {
         .request(
           Method::POST,
           &format!("/articles/{}/highlights", Uuid::nil()),
-          Some(json!({ "start_offset": 3, "end_offset": 6, "selected_text": "foo" })),
+          Some(
+            json!({ "startOffset": 3, "endOffset": 6, "selectedText": "foo" }),
+          ),
         )
         .await,
       StatusCode::NOT_FOUND,

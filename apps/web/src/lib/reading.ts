@@ -36,11 +36,11 @@ export function crossedEnd(previous: number, current: number): boolean {
 }
 
 export function readingStatus(article: Article, timeZone?: string): string {
-  if (article.date_read !== null) {
-    return `Read ${formatDate(article.date_read, timeZone)}`;
+  if (article.dateRead !== null) {
+    return `Read ${formatDate(article.dateRead, timeZone)}`;
   }
 
-  const percent = Math.round(article.progress.scroll_position * 100);
+  const percent = Math.round(article.progress.scrollPosition * 100);
 
   return percent > 0 ? `${percent}% read` : 'Unread';
 }

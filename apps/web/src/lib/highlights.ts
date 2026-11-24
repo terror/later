@@ -3,7 +3,7 @@ import type { CreateHighlight, Highlight, UpdateHighlight } from '@later/types';
 export const DEFAULT_HIGHLIGHT_COLOR = '#FFEB3B';
 
 function compareHighlights(a: Highlight, b: Highlight): number {
-  return a.start_offset - b.start_offset || a.end_offset - b.end_offset;
+  return a.startOffset - b.startOffset || a.endOffset - b.endOffset;
 }
 
 export function insertHighlight(
@@ -19,7 +19,7 @@ export function patchHighlight(
   update: UpdateHighlight
 ): Highlight[] {
   return highlights.map((highlight) =>
-    highlight.highlight_id === highlightId
+    highlight.highlightId === highlightId
       ? {
           ...highlight,
           ...update,
@@ -35,7 +35,7 @@ export function removeHighlight(
   highlightId: string
 ): Highlight[] {
   return highlights.filter(
-    (highlight) => highlight.highlight_id !== highlightId
+    (highlight) => highlight.highlightId !== highlightId
   );
 }
 
@@ -72,22 +72,15 @@ export function selectionRange(
     return null;
   }
 
-  const start_offset = textOffset(
-    root,
-    range.startContainer,
-    range.startOffset
-  );
+  const startOffset = textOffset(root, range.startContainer, range.startOffset);
 
-  const end_offset = textOffset(root, range.endContainer, range.endOffset);
+  const endOffset = textOffset(root, range.endContainer, range.endOffset);
 
-  const selected_text = (root.textContent ?? '').slice(
-    start_offset,
-    end_offset
-  );
+  const selectedText = (root.textContent ?? '').slice(startOffset, endOffset);
 
-  return selected_text.trim() === ''
+  return selectedText.trim() === ''
     ? null
-    : { start_offset, end_offset, selected_text };
+    : { startOffset, endOffset, selectedText };
 }
 
 export function renderHighlights(root: Element, highlights: Highlight[]) {
@@ -95,9 +88,9 @@ export function renderHighlights(root: Element, highlights: Highlight[]) {
     let offset = 0;
 
     for (const node of textNodes(root)) {
-      const start = Math.max(highlight.start_offset - offset, 0);
+      const start = Math.max(highlight.startOffset - offset, 0);
 
-      const end = Math.min(highlight.end_offset - offset, node.length);
+      const end = Math.min(highlight.endOffset - offset, node.length);
 
       offset += node.length;
 
@@ -112,7 +105,7 @@ export function renderHighlights(root: Element, highlights: Highlight[]) {
 
       const mark = document.createElement('mark');
 
-      mark.dataset.highlightId = highlight.highlight_id;
+      mark.dataset.highlightId = highlight.highlightId;
       mark.style.setProperty('--highlight', highlight.color);
 
       range.surroundContents(mark);
