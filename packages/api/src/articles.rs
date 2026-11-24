@@ -15,6 +15,7 @@ pub(crate) struct SaveArticle {
 pub(crate) struct UpdateArticle {
   is_archived: Option<bool>,
   is_favorited: Option<bool>,
+  is_read: Option<bool>,
 }
 
 fn normalize_url(url: &Url) -> Url {
@@ -110,6 +111,24 @@ pub(crate) async fn list(
   ))
 }
 
+fn check_progress(progress: &model::ReadingProgress) -> Result<(), BadRequest> {
+  if !(0.0..=1.0).contains(&progress.scroll_position) {
+    return Err(BadRequest(format!(
+      "invalid scroll position `{}`",
+      progress.scroll_position
+    )));
+  }
+
+  if progress.time_spent_seconds < 0 {
+    return Err(BadRequest(format!(
+      "invalid time spent `{}`",
+      progress.time_spent_seconds
+    )));
+  }
+
+  Ok(())
+}
+
 #[utoipa::path(
   post,
   path = "/articles",
@@ -169,6 +188,35 @@ pub(crate) async fn save(
 }
 
 #[utoipa::path(
+  put,
+  path = "/articles/{article_id}/progress",
+  tag = "articles",
+  params(("article_id" = Uuid, Path)),
+  request_body = model::ReadingProgress,
+  responses(
+    (status = StatusCode::OK, body = model::ReadingProgress),
+    (status = StatusCode::BAD_REQUEST, body = String),
+    (status = StatusCode::NOT_FOUND),
+    (status = StatusCode::UNAUTHORIZED)
+  )
+)]
+pub(crate) async fn save_progress(
+  user: User,
+  AppState(db): AppState<Db>,
+  Path(article_id): Path<Uuid>,
+  Json(progress): Json<model::ReadingProgress>,
+) -> Result<Json<model::ReadingProgress>> {
+  check_progress(&progress)?;
+
+  Ok(Json(
+    db.save_progress(user.user_id, article_id, &progress)
+      .await
+      .context("failed to save reading progress")?
+      .ok_or(NotFound)?,
+  ))
+}
+
+#[utoipa::path(
   patch,
   path = "/articles/{article_id}",
   tag = "articles",
@@ -192,6 +240,7 @@ pub(crate) async fn update(
       article_id,
       request.is_archived,
       request.is_favorited,
+      request.is_read,
     )
     .await
     .context("failed to update article")?
@@ -202,6 +251,31 @@ pub(crate) async fn update(
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  #[test]
+  fn check_progress() {
+    #[track_caller]
+    fn case(
+      scroll_position: f64,
+      time_spent_seconds: i32,
+      expected: Result<(), &str>,
+    ) {
+      assert_eq!(
+        super::check_progress(&model::ReadingProgress {
+          scroll_position,
+          time_spent_seconds,
+        })
+        .map_err(|error| error.to_string()),
+        expected.map_err(str::to_owned),
+      );
+    }
+
+    case(0.0, 0, Ok(()));
+    case(1.0, 10, Ok(()));
+    case(1.5, 0, Err("invalid scroll position `1.5`"));
+    case(-0.5, 0, Err("invalid scroll position `-0.5`"));
+    case(0.5, -1, Err("invalid time spent `-1`"));
+  }
 
   #[test]
   fn normalize_url() {

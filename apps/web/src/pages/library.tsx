@@ -35,6 +35,12 @@ export default function LibraryPage() {
           update: { is_archived: !article.is_archived },
         })
       }
+      onToggleRead={(article) =>
+        update.mutate({
+          articleId: article.article_id,
+          update: { is_read: article.date_read === null },
+        })
+      }
       onDelete={(article) => remove.mutate(article.article_id)}
     />
   );

@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { articles as fixtures, now, user } from '../../.storybook/fixtures';
 import preview from '../../.storybook/preview';
+import { applyUpdate } from '../lib/library';
 import type { Article } from '../lib/types';
 import { Library } from './library';
 
@@ -36,6 +37,12 @@ function Example({
       }
       onToggleArchive={(article) =>
         update(article, { is_archived: !article.is_archived })
+      }
+      onToggleRead={(article) =>
+        update(
+          article,
+          applyUpdate(article, { is_read: article.date_read === null }, now)
+        )
       }
       onDelete={(article) =>
         setArticles(
