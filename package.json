@@ -2,6 +2,7 @@
   "name": "later",
   "private": true,
   "workspaces": [
+    "apps/desktop",
     "apps/extension",
     "apps/web",
     "packages/types"
